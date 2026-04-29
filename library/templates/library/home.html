@@ -1,0 +1,29 @@
+{% extends "library/base.html" %}
+
+{% block title %}Ana Sayfa - BosMu{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 text-center mb-4">
+        <h1>📚 BosMu</h1>
+        <p class="lead">Kütüphanedeki boş koltuğu anında bul!</p>
+    </div>
+
+    {% if user.is_authenticated %}
+        <div class="col-12 text-center">
+            <div class="card p-4">
+                <h4>Hoş geldin, {{ user.username }}! 👋</h4>
+                <p>QR kodu okutarak check-in yapabilirsin.</p>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-md-6 offset-md-3 text-center">
+            <div class="card p-4">
+                <h4>Başlamak için giriş yap</h4>
+                <a href="{% url 'library:login' %}" class="btn btn-dark mt-3 me-2">Giriş Yap</a>
+                <a href="{% url 'library:signup' %}" class="btn btn-outline-dark mt-3">Kayıt Ol</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
