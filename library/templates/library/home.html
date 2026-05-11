@@ -2,8 +2,119 @@
 
 {% block title %}BosMu — Kütüphane Koltuk Takip{% endblock %}
 
+{% block extra_css %}
+.info-bar {
+    background: #1a1d27;
+    border: 1px solid #2e3344;
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.info-bar .lib-hours {
+    font-size: 14px;
+    color: #8b8fa3;
+}
+.info-bar .lib-hours span {
+    color: #e8eaed;
+    font-weight: 600;
+}
+.staff-card {
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 10px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+}
+.staff-card .name { font-weight: 700; color: #e8eaed; }
+.staff-card .email { color: #8b8fa3; font-size: 13px; }
+.staff-card .hours { color: #6366f1; font-size: 13px; font-weight: 600; }
+
+.feedback-section {
+    background: #1a1d27;
+    border: 1px solid #2e3344;
+    border-radius: 12px;
+    padding: 28px;
+    margin-top: 24px;
+}
+.feedback-section h4 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.feedback-section p {
+    color: #8b8fa3;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; color: #8b8fa3; margin-bottom: 6px; }
+.form-control-dark {
+    width: 100%;
+    background: #242836;
+    border: 1px solid #2e3344;
+    color: #e8eaed;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+.form-control-dark:focus {
+    outline: none;
+    border-color: #6366f1;
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+.btn-submit {
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 6px;
+    transition: background 0.2s;
+}
+.btn-submit:hover { background: #5254cc; }
+{% endblock %}
+
 {% block content %}
-<div class="text-center py-5">
+
+<!-- Kütüphane Bilgi Barı -->
+{% if library %}
+<div class="info-bar">
+    <div class="lib-hours">
+        🕐 Çalışma Saatleri: <span>{{ library.opening_time|time:"H:i" }} — {{ library.closing_time|time:"H:i" }}</span>
+    </div>
+    {% if today_staff %}
+    <div class="staff-card">
+        <div>👤</div>
+        <div>
+            <div class="name">{{ today_staff.full_name }}</div>
+            <div class="email">{{ today_staff.email }}</div>
+            <div class="hours">{{ today_staff.start_time|time:"H:i" }} — {{ today_staff.end_time|time:"H:i" }}</div>
+        </div>
+    </div>
+    {% else %}
+    <div style="color: #8b8fa3; font-size: 14px;">👤 Bugün görevli girilmemiş</div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Başlık -->
+<div class="text-center py-4">
     <h1 class="display-4 fw-bold mb-3">
         📚 Bos<span style="color: #6366f1;">Mu</span>?
     </h1>
@@ -13,61 +124,96 @@
     </p>
 
     {% if user.is_authenticated %}
-        <div class="row g-4 mt-4" style="max-width: 900px; margin: 0 auto;">
-
-            <div class="col-md-6">
-                <div class="card h-100" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
-                    <div class="card-body text-center p-4">
-                        <div style="font-size: 48px; margin-bottom: 12px;">🗺️</div>
-                        <h5 class="card-title text-white">Canlı Harita</h5>
-                        <p class="card-text text-secondary">Koltukların anlık durumunu haritada gör</p>
-                        <a href="{% url 'library:seat_map' %}" class="btn btn-bosmu mt-2">Haritayı Aç</a>
-                    </div>
+    <div class="row g-4 mt-2" style="max-width: 900px; margin: 0 auto;">
+        <div class="col-md-6">
+            <div class="card h-100" style="background:#1a1d27;border:1px solid #2e3344;border-radius:12px;">
+                <div class="card-body text-center p-4">
+                    <div style="font-size:48px;margin-bottom:12px;">🗺️</div>
+                    <h5 class="card-title text-white">Canlı Harita</h5>
+                    <p class="card-text text-secondary">Koltukların anlık durumunu haritada gör</p>
+                    <a href="{% url 'library:seat_map' %}" class="btn btn-bosmu mt-2">Haritayı Aç</a>
                 </div>
             </div>
-
-            <div class="col-md-6">
-                <div class="card h-100" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
-                    <div class="card-body text-center p-4">
-                        <div style="font-size: 48px; margin-bottom: 12px;">📱</div>
-                        <h5 class="card-title text-white">QR Check-in</h5>
-                        <p class="card-text text-secondary">Koltuk QR kodunu okut, hemen check-in yap</p>
-                        <a href="{% url 'library:seat_map' %}" class="btn btn-bosmu mt-2">Haritaya Git</a>
-                    </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100" style="background:#1a1d27;border:1px solid #2e3344;border-radius:12px;">
+                <div class="card-body text-center p-4">
+                    <div style="font-size:48px;margin-bottom:12px;">📱</div>
+                    <h5 class="card-title text-white">QR Check-in</h5>
+                    <p class="card-text text-secondary">Koltuk QR kodunu okut, hemen check-in yap</p>
+                    <a href="{% url 'library:seat_map' %}" class="btn btn-bosmu mt-2">Haritaya Git</a>
                 </div>
             </div>
-
-            <div class="col-12">
-                <div class="card" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
-                    <div class="card-body p-4">
-                        <h5 class="text-white mb-3">📊 Anlık Doluluk</h5>
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <div class="fw-bold fs-3" style="color: #22c55e;">{{ empty }}</div>
-                                <div class="text-secondary small">Boş</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="fw-bold fs-3" style="color: #ef4444;">{{ occupied }}</div>
-                                <div class="text-secondary small">Dolu</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="fw-bold fs-3 text-white">{{ total }}</div>
-                                <div class="text-secondary small">Toplam</div>
-                            </div>
+        </div>
+        <div class="col-12">
+            <div class="card" style="background:#1a1d27;border:1px solid #2e3344;border-radius:12px;">
+                <div class="card-body p-4">
+                    <h5 class="text-white mb-3">📊 Anlık Doluluk</h5>
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <div class="fw-bold fs-3" style="color:#22c55e;">{{ empty }}</div>
+                            <div class="text-secondary small">Boş</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="fw-bold fs-3" style="color:#ef4444;">{{ occupied }}</div>
+                            <div class="text-secondary small">Dolu</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="fw-bold fs-3" style="color:#6b7280;">{{ broken }}</div>
+                            <div class="text-secondary small">Arızalı</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="fw-bold fs-3 text-white">{{ total }}</div>
+                            <div class="text-secondary small">Toplam</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
+    </div>
     {% else %}
-        <div class="mt-4">
-            <a href="{% url 'library:signup' %}" class="btn btn-bosmu btn-lg me-2">Kayıt Ol</a>
-            <a href="{% url 'library:login' %}" class="btn btn-outline-bosmu btn-lg">Giriş Yap</a>
-        </div>
-        <p class="text-secondary mt-3">
-            Boş koltuk bulmak için ücretsiz hesap oluştur.
-        </p>
+    <div class="mt-4">
+        <a href="{% url 'library:signup' %}" class="btn btn-bosmu btn-lg me-2">Kayıt Ol</a>
+        <a href="{% url 'library:login' %}" class="btn btn-outline-bosmu btn-lg">Giriş Yap</a>
+    </div>
     {% endif %}
 </div>
+
+<!-- Şikayet / Öneri Formu -->
+<div class="feedback-section" style="max-width: 700px; margin: 0 auto;">
+    <h4>💬 Şikayet & Öneri</h4>
+    <p>Kütüphane hakkında bir şikayet veya öneriniz mi var? Bize iletin, en kısa sürede dönelim.</p>
+
+    <form method="POST" action="{% url 'library:feedback' %}">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="form-group">
+                <label>Ad *</label>
+                <input type="text" name="first_name" class="form-control-dark" placeholder="Adınız" required>
+            </div>
+            <div class="form-group">
+                <label>Soyad *</label>
+                <input type="text" name="last_name" class="form-control-dark" placeholder="Soyadınız" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Okul E-postası *</label>
+            <input type="email" name="school_email" class="form-control-dark" placeholder="ogrenci@universite.edu.tr" required>
+        </div>
+        <div class="form-group">
+            <label>Tür</label>
+            <select name="feedback_type" class="form-control-dark">
+                <option value="complaint">Şikayet</option>
+                <option value="suggestion">Öneri</option>
+                <option value="other">Diğer</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Mesajınız *</label>
+            <textarea name="message" class="form-control-dark" rows="4" placeholder="Mesajınızı buraya yazın..." required></textarea>
+        </div>
+        <button type="submit" class="btn-submit">Gönder 🚀</button>
+    </form>
+</div>
+
 {% endblock %}
