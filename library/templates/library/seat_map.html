@@ -103,7 +103,7 @@ const allSeats = [];
 let seatCounter = 0;
 
 // Django'dan gelen koltuk durumları
-const seatData = {{ seats|safe }};
+const seatData = {{ seats_json|safe }};
 const seatStatusMap = {};
 seatData.forEach(s => { seatStatusMap[s.code] = s; });
 
