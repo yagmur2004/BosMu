@@ -1,0 +1,350 @@
+{% extends "library/base.html" %}
+{% load static %}
+
+{% block title %}Canlı Harita — BosMu{% endblock %}
+
+{% block extra_css %}
+.map-legend { display:flex; gap:18px; flex-wrap:wrap; margin-bottom:16px; }
+.map-legend-item { display:flex; align-items:center; gap:7px; font-size:13px; color:#8b8fa3; }
+.map-legend-dot { width:14px; height:14px; border-radius:3px; }
+.map-legend-dot.empty { background:#22c55e; }
+.map-legend-dot.occupied { background:#ef4444; }
+.map-legend-dot.computer { background:#3b82f6; }
+
+.map-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.map-stat { background:#1a1d27; border:1px solid #2e3344; border-radius:10px; padding:14px; text-align:center; }
+.map-stat-val { font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; }
+.map-stat-lbl { font-size:12px; color:#8b8fa3; margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
+
+.user-checkin-bar { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3); border-radius:10px; padding:16px 20px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+.user-checkin-bar .info { color:#f87171; font-weight:600; }
+.user-checkin-bar .btn-co { background:#22c55e; color:#fff; border:none; border-radius:8px; padding:10px 24px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; }
+
+.map-scroll { overflow-x:auto; padding-bottom:8px; }
+.map-canvas { position:relative; width:1380px; height:820px; background:#1a1d27; border:1px solid #2e3344; border-radius:12px; }
+
+.seat { position:absolute; width:28px; height:28px; border-radius:4px; cursor:pointer; transition:transform .15s,box-shadow .2s; border:none; outline:none; display:flex; align-items:center; justify-content:center; font-size:0; padding:0; }
+.seat.empty { background:#22c55e; box-shadow:0 0 8px rgba(34,197,94,.25); }
+.seat.occupied { background:#ef4444; box-shadow:0 0 8px rgba(239,68,68,.25); }
+.seat.computer { background:#3b82f6; box-shadow:0 0 8px rgba(59,130,246,.25); }
+.seat.computer.occupied { background:#ef4444; box-shadow:0 0 8px rgba(239,68,68,.25); }
+.seat:hover { transform:scale(1.25); z-index:50; }
+.seat.computer::after { content:'🖥'; font-size:14px; }
+.seat.computer.occupied::after { opacity:.6; }
+.seat::before { content:attr(data-code); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%) scale(.85); background:#000; color:#fff; padding:3px 8px; border-radius:4px; font-size:11px; font-family:'JetBrains Mono',monospace; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .15s,transform .15s; z-index:100; }
+.seat:hover::before { opacity:1; transform:translateX(-50%) scale(1); }
+
+.zone-tag { position:absolute; background:#242836; border:1px solid #2e3344; color:#8b8fa3; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; padding:4px 10px; border-radius:4px; white-space:nowrap; }
+
+.popup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:200; align-items:center; justify-content:center; }
+.popup-overlay.active { display:flex; }
+.popup { background:#1a1d27; border:1px solid #2e3344; border-radius:16px; padding:28px 32px; width:340px; text-align:center; animation:popIn .25s ease; }
+@keyframes popIn { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
+.popup h3 { font-size:18px; margin-bottom:6px; }
+.popup .seat-status { font-size:14px; color:#8b8fa3; margin-bottom:20px; }
+.popup .btn-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.popup .pbtn { padding:10px 22px; border:none; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:transform .1s; }
+.popup .pbtn:active { transform:scale(.95); }
+.pbtn-checkin { background:#ef4444; color:#fff; }
+.pbtn-checkout { background:#22c55e; color:#fff; }
+.pbtn-cancel { background:#242836; color:#8b8fa3; }
+{% endblock %}
+
+{% block content %}
+
+<!-- Kullanıcının aktif check-in'i -->
+{% if user_checkin %}
+<div class="user-checkin-bar">
+    <div class="info">📍 Şu an <strong>{{ user_checkin.seat.code }}</strong> koltuğundasın ({{ user_checkin.checked_in_at|timesince }} önce)</div>
+    <form method="POST" action="{% url 'library:checkout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-co">🟢 Check-out</button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Legend -->
+<div class="map-legend">
+    <div class="map-legend-item"><span class="map-legend-dot empty"></span>Boş</div>
+    <div class="map-legend-item"><span class="map-legend-dot occupied"></span>Dolu</div>
+    <div class="map-legend-item"><span class="map-legend-dot computer"></span>Bilgisayar</div>
+</div>
+
+<!-- Stats -->
+<div class="map-stats">
+    <div class="map-stat"><div class="map-stat-val" style="color:#e8eaed;" id="s-total">0</div><div class="map-stat-lbl">Toplam</div></div>
+    <div class="map-stat"><div class="map-stat-val" style="color:#22c55e;" id="s-empty">0</div><div class="map-stat-lbl">Boş</div></div>
+    <div class="map-stat"><div class="map-stat-val" style="color:#ef4444;" id="s-occupied">0</div><div class="map-stat-lbl">Dolu</div></div>
+    <div class="map-stat"><div class="map-stat-val" style="color:#3b82f6;" id="s-computer">0</div><div class="map-stat-lbl">Bilgisayarlı</div></div>
+</div>
+
+<!-- Map -->
+<div class="map-scroll">
+    <div class="map-canvas" id="map"></div>
+</div>
+
+<!-- Popup -->
+<div class="popup-overlay" id="popup-overlay">
+    <div class="popup">
+        <h3 id="popup-title">Koltuk</h3>
+        <p class="seat-status" id="popup-status">Durum: Boş</p>
+        <div class="btn-row" id="popup-buttons"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const map = document.getElementById('map');
+const S = 28, G = 8, P = S + G;
+const csrfToken = '{{ csrf_token }}';
+const allSeats = [];
+let seatCounter = 0;
+
+// Django'dan gelen koltuk durumları
+const seatData = {{ seats_json|safe }};
+const seatStatusMap = {};
+seatData.forEach(s => { seatStatusMap[s.code] = s; });
+
+function addDash(x, y, len, dir) {
+    const d = document.createElement('div');
+    d.style.position = 'absolute';
+    if (dir === 'v') d.style.cssText = `left:${x}px;top:${y}px;width:0;height:${len}px;border-left:2px dashed #555a70;`;
+    else d.style.cssText = `left:${x}px;top:${y}px;width:${len}px;height:0;border-top:2px dashed #555a70;`;
+    map.appendChild(d);
+}
+
+function addTag(x, y, text) {
+    const d = document.createElement('div');
+    d.className = 'zone-tag';
+    d.style.cssText = `left:${x}px;top:${y}px;`;
+    d.textContent = text;
+    map.appendChild(d);
+}
+
+function addSeat(x, y, zone, isComputer) {
+    seatCounter++;
+    const code = `${zone}-${String(seatCounter).padStart(3, '0')}`;
+    const el = document.createElement('button');
+
+    // Django verisinden durumu al
+    const info = seatStatusMap[code];
+    const isOccupied = info ? info.is_occupied : false;
+
+    let cls = 'seat ';
+    if (isOccupied) {
+        cls += isComputer ? 'computer occupied' : 'occupied';
+    } else {
+        cls += isComputer ? 'computer' : 'empty';
+    }
+
+    el.className = cls;
+    el.dataset.code = code;
+    el.dataset.zone = zone;
+    el.dataset.type = isComputer ? 'computer' : 'study';
+    el.dataset.status = isOccupied ? 'occupied' : (isComputer ? 'computer' : 'empty');
+    el.dataset.dbId = info ? info.id : '';
+    el.dataset.user = info && info.user ? info.user : '';
+    el.style.cssText = `left:${x}px;top:${y}px;`;
+    el.addEventListener('click', () => openPopup(el));
+    map.appendChild(el);
+    allSeats.push(el);
+}
+
+
+// ══════════════ SOL BÖLGE — 93 KOLTUK ══════════════
+seatCounter = 0;
+const LX = 40, LY = 40, COL_W = 38, GROUP_GAP = 36;
+const g1s1x = LX, g1s2x = g1s1x + COL_W;
+const g2s1x = g1s2x + COL_W + GROUP_GAP, g2s2x = g2s1x + COL_W;
+const g3s1x = g2s2x + COL_W + GROUP_GAP, g3s2x = g3s1x + COL_W;
+
+[[g1s1x,12],[g1s2x,12],[g2s1x,10],[g2s2x,10],[g3s1x,12],[g3s2x,12]].forEach(([x,n]) => {
+    for (let r = 0; r < n; r++) addSeat(x, LY + r * P, 'L', false);
+});
+
+addDash(g1s1x + COL_W/2, LY, 12*P - G, 'v');
+addDash(g2s1x + COL_W/2, LY, 10*P - G, 'v');
+addDash(g3s1x + COL_W/2, LY, 12*P - G, 'v');
+
+// Sol alt
+const LBX = 40, LBY = 560, LB_CORR = P + 16;
+for (let c = 0; c < 6; c++) addSeat(LBX + c*P, LBY, 'L', false);
+addDash(LBX, LBY + S + G/2, 6*P - G, 'h');
+const lbR2 = LBY + P;
+for (let c = 0; c < 6; c++) addSeat(LBX + c*P, lbR2, 'L', false);
+const lbR3 = lbR2 + LB_CORR;
+for (let c = 0; c < 6; c++) addSeat(LBX + c*P, lbR3, 'L', false);
+addDash(LBX, lbR3 + S + G/2, 6*P - G, 'h');
+addSeat(LBX + 5*P, lbR3 + P, 'L', false);
+
+// Sol sağ dış dikey
+for (let r = 0; r < 6; r++) addSeat(474, 250 + r*(P+6), 'L', false);
+
+
+// ══════════════ ORTA BÖLGE — 22 KOLTUK ══════════════
+seatCounter = 0;
+const MX1 = 558, MX2 = MX1+46, MX3 = MX2+50, MY0 = 210, MRP = P+8;
+for (let r = 0; r < 6; r++) {
+    addSeat(MX1, MY0 + r*MRP, 'M', true);
+    addSeat(MX2, MY0 + r*MRP, 'M', true);
+    addSeat(MX3, MY0 + r*MRP, 'M', true);
+}
+addDash(MX2 + S + (MX3-MX2-S)/2, MY0, 6*MRP - G, 'v');
+for (let r = 0; r < 4; r++) addSeat(800, 230 + r*(P+32), 'M', false);
+
+
+// ══════════════ SAĞ BÖLGE — 29 KOLTUK ══════════════
+seatCounter = 0;
+const RX = 920, RY = 42, RCP = P+8;
+addSeat(RX, RY, 'R', false);
+for (let c = 0; c < 4; c++) addSeat(RX + (c+2)*RCP, RY, 'R', false);
+const rr2 = RY + P + 6;
+for (let c = 0; c < 6; c++) addSeat(RX + c*RCP, rr2, 'R', false);
+addDash(RX, rr2 + S + 6, 6*RCP - G, 'h');
+const rr3 = rr2 + P + 30;
+for (let c = 0; c < 6; c++) addSeat(RX + c*RCP, rr3, 'R', false);
+const rr4 = rr3 + P + 6;
+for (let c = 0; c < 6; c++) addSeat(RX + c*RCP, rr4, 'R', false);
+addDash(RX, rr4 + S + 6, 6*RCP - G, 'h');
+const rr5 = rr4 + P + 30;
+for (let c = 0; c < 6; c++) addSeat(RX + c*RCP, rr5, 'R', false);
+
+
+// ══════════════ ETİKETLER ══════════════
+addTag(170, 5, 'Sol Bölge — 93 koltuk');
+addTag(590, 162, 'Orta — 22 koltuk');
+addTag(1050, 5, 'Sağ Bölge — 29 koltuk');
+
+
+// ══════════════ STATS ══════════════
+function updateStats() {
+    const t = allSeats.length;
+    const o = allSeats.filter(s => s.dataset.status === 'occupied').length;
+    const c = allSeats.filter(s => s.dataset.type === 'computer').length;
+    document.getElementById('s-total').textContent = t;
+    document.getElementById('s-empty').textContent = t - o;
+    document.getElementById('s-occupied').textContent = o;
+    document.getElementById('s-computer').textContent = c;
+}
+updateStats();
+
+
+// ══════════════ POPUP + AJAX ══════════════
+const overlay = document.getElementById('popup-overlay');
+const popupTitle = document.getElementById('popup-title');
+const popupStatus = document.getElementById('popup-status');
+const popupBtns = document.getElementById('popup-buttons');
+overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('active'); });
+
+function openPopup(seat) {
+    const code = seat.dataset.code;
+    const status = seat.dataset.status;
+    const isComp = seat.dataset.type === 'computer';
+    const dbId = seat.dataset.dbId;
+    const occupant = seat.dataset.user;
+
+    popupTitle.textContent = `Koltuk ${code}`;
+    let statusText = status === 'occupied' ? `Dolu (${occupant})` : (isComp ? 'Bilgisayar — Boş' : 'Boş');
+    popupStatus.textContent = `Durum: ${statusText}`;
+    popupBtns.innerHTML = '';
+
+    if (status === 'empty' || status === 'computer') {
+        if (dbId) {
+            const btn = document.createElement('button');
+            btn.className = 'pbtn pbtn-checkin';
+            btn.textContent = '🔴 Check-in';
+            btn.onclick = () => doCheckin(dbId, seat);
+            popupBtns.appendChild(btn);
+        }
+    } else if (status === 'occupied') {
+        const btn = document.createElement('button');
+        btn.className = 'pbtn pbtn-checkout';
+        btn.textContent = '🟢 Check-out';
+        btn.onclick = () => doCheckout(seat, isComp);
+        popupBtns.appendChild(btn);
+    }
+
+    const btnClose = document.createElement('button');
+    btnClose.className = 'pbtn pbtn-cancel';
+    btnClose.textContent = 'Kapat';
+    btnClose.onclick = () => overlay.classList.remove('active');
+    popupBtns.appendChild(btnClose);
+    overlay.classList.add('active');
+}
+
+function doCheckin(seatId, el) {
+    fetch(`/api/checkin/${seatId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            el.dataset.status = 'occupied';
+            el.className = 'seat occupied';
+            if (el.dataset.type === 'computer') el.classList.add('computer');
+            updateStats();
+            overlay.classList.remove('active');
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    });
+}
+
+function doCheckout(el, isComp) {
+    fetch('/api/checkout/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            el.dataset.status = isComp ? 'computer' : 'empty';
+            el.className = `seat ${isComp ? 'computer' : 'empty'}`;
+            updateStats();
+            overlay.classList.remove('active');
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    });
+}
+
+// Canlı güncelleme — her 10 saniye
+setInterval(() => {
+    fetch('/api/seats/')
+    .then(r => r.json())
+    .then(data => {
+        const statusMap = {};
+        data.seats.forEach(s => { statusMap[s.code] = s; });
+
+        allSeats.forEach(el => {
+            const info = statusMap[el.dataset.code];
+            if (!info) return;
+            const newStatus = info.status;
+            if (el.dataset.status !== newStatus) {
+                el.dataset.status = newStatus;
+                el.dataset.user = info.user || '';
+                el.className = 'seat';
+                if (newStatus === 'occupied') {
+                    el.classList.add('occupied');
+                    if (el.dataset.type === 'computer') el.classList.add('computer');
+                } else if (el.dataset.type === 'computer') {
+                    el.classList.add('computer');
+                } else {
+                    el.classList.add('empty');
+                }
+            }
+        });
+        updateStats();
+
+        document.getElementById('s-total').textContent = data.total;
+        document.getElementById('s-empty').textContent = data.empty;
+        document.getElementById('s-occupied').textContent = data.occupied;
+    });
+}, 10000);
+</script>
+{% endblock %}

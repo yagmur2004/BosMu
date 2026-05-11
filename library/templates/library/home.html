@@ -1,29 +1,73 @@
 {% extends "library/base.html" %}
 
-{% block title %}Ana Sayfa - BosMu{% endblock %}
+{% block title %}BosMu — Kütüphane Koltuk Takip{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12 text-center mb-4">
-        <h1>📚 BosMu</h1>
-        <p class="lead">Kütüphanedeki boş koltuğu anında bul!</p>
-    </div>
+<div class="text-center py-5">
+    <h1 class="display-4 fw-bold mb-3">
+        📚 Bos<span style="color: #6366f1;">Mu</span>?
+    </h1>
+    <p class="lead text-secondary mb-4" style="max-width: 600px; margin: 0 auto;">
+        Kütüphanedeki boş koltukları anında gör, QR kod ile check-in yap,
+        çalışma alanını kolayca bul.
+    </p>
 
     {% if user.is_authenticated %}
-        <div class="col-12 text-center">
-            <div class="card p-4">
-                <h4>Hoş geldin, {{ user.username }}! 👋</h4>
-                <p>QR kodu okutarak check-in yapabilirsin.</p>
+        <div class="row g-4 mt-4" style="max-width: 900px; margin: 0 auto;">
+
+            <div class="col-md-6">
+                <div class="card h-100" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
+                    <div class="card-body text-center p-4">
+                        <div style="font-size: 48px; margin-bottom: 12px;">🗺️</div>
+                        <h5 class="card-title text-white">Canlı Harita</h5>
+                        <p class="card-text text-secondary">Koltukların anlık durumunu haritada gör</p>
+                        <a href="{% url 'library:seat_map' %}" class="btn btn-bosmu mt-2">Haritayı Aç</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
+                    <div class="card-body text-center p-4">
+                        <div style="font-size: 48px; margin-bottom: 12px;">📱</div>
+                        <h5 class="card-title text-white">QR Check-in</h5>
+                        <p class="card-text text-secondary">Koltuk QR kodunu okut, hemen check-in yap</p>
+                        <a href="{% url 'library:seat_map' %}" class="btn btn-bosmu mt-2">Haritaya Git</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
+                    <div class="card-body p-4">
+                        <h5 class="text-white mb-3">📊 Anlık Doluluk</h5>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="fw-bold fs-3" style="color: #22c55e;">{{ empty }}</div>
+                                <div class="text-secondary small">Boş</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-3" style="color: #ef4444;">{{ occupied }}</div>
+                                <div class="text-secondary small">Dolu</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-3 text-white">{{ total }}</div>
+                                <div class="text-secondary small">Toplam</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
     {% else %}
-        <div class="col-md-6 offset-md-3 text-center">
-            <div class="card p-4">
-                <h4>Başlamak için giriş yap</h4>
-                <a href="{% url 'library:login' %}" class="btn btn-dark mt-3 me-2">Giriş Yap</a>
-                <a href="{% url 'library:signup' %}" class="btn btn-outline-dark mt-3">Kayıt Ol</a>
-            </div>
+        <div class="mt-4">
+            <a href="{% url 'library:signup' %}" class="btn btn-bosmu btn-lg me-2">Kayıt Ol</a>
+            <a href="{% url 'library:login' %}" class="btn btn-outline-bosmu btn-lg">Giriş Yap</a>
         </div>
+        <p class="text-secondary mt-3">
+            Boş koltuk bulmak için ücretsiz hesap oluştur.
+        </p>
     {% endif %}
 </div>
 {% endblock %}

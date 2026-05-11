@@ -1,30 +1,57 @@
 {% extends "library/base.html" %}
 
-{% block title %}Giriş - BosMu{% endblock %}
+{% block title %}Giriş — BosMu{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-4 offset-md-4">
-        <div class="card p-4">
-            <h3 class="text-center mb-4">Giriş Yap</h3>
-            <form method="post">
-                {% csrf_token %}
-                {% for field in form %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+        <div class="card" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 16px;">
+            <div class="card-body p-5">
+                <h2 class="text-center fw-bold mb-2">Giriş Yap</h2>
+                <p class="text-center text-secondary mb-4">Koltuk takip sistemine hoş geldin</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
                     <div class="mb-3">
-                        <label class="form-label">{{ field.label }}</label>
-                        <input type="{{ field.field.widget.input_type }}"
-                               name="{{ field.html_name }}"
-                               class="form-control {% if field.errors %}is-invalid{% endif %}">
-                        {% for error in field.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
-                        {% endfor %}
+                        <label class="form-label text-secondary" for="id_username">Kullanıcı Adı</label>
+                        <input type="text" 
+                               name="username" 
+                               id="id_username"
+                               class="form-control {% if form.errors %}is-invalid{% endif %}" 
+                               style="background: #242836; border: 1px solid #2e3344; color: #e8eaed; border-radius: 8px; padding: 12px;"
+                               placeholder="Kullanıcı adınız"
+                               value="{{ form.username.value|default:'' }}"
+                               required>
                     </div>
-                {% endfor %}
-                <button type="submit" class="btn btn-dark w-100">Giriş Yap</button>
-            </form>
-            <p class="text-center mt-3">
-                Hesabın yok mu? <a href="{% url 'library:signup' %}">Kayıt Ol</a>
-            </p>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary" for="id_password">Şifre</label>
+                        <input type="password" 
+                               name="password" 
+                               id="id_password"
+                               class="form-control {% if form.errors %}is-invalid{% endif %}" 
+                               style="background: #242836; border: 1px solid #2e3344; color: #e8eaed; border-radius: 8px; padding: 12px;"
+                               placeholder="Şifreniz"
+                               required>
+                    </div>
+
+                    {% if form.errors %}
+                        <div class="alert alert-danger py-2" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">
+                            Kullanıcı adı veya şifre hatalı.
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-bosmu w-100 py-3 mt-2">
+                        Giriş Yap
+                    </button>
+                </form>
+
+                <p class="text-center text-secondary mt-4 mb-0">
+                    Hesabın yok mu? 
+                    <a href="{% url 'library:signup' %}" style="color: #6366f1; text-decoration: none; font-weight: 600;">Kayıt Ol</a>
+                </p>
+            </div>
         </div>
     </div>
 </div>

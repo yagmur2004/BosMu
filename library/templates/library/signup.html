@@ -1,30 +1,79 @@
 {% extends "library/base.html" %}
 
-{% block title %}Kayıt Ol - BosMu{% endblock %}
+{% block title %}Kayıt Ol — BosMu{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-4 offset-md-4">
-        <div class="card p-4">
-            <h3 class="text-center mb-4">Kayıt Ol</h3>
-            <form method="post">
-                {% csrf_token %}
-                {% for field in form %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+        <div class="card" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 16px;">
+            <div class="card-body p-5">
+                <h2 class="text-center fw-bold mb-2">Kayıt Ol</h2>
+                <p class="text-center text-secondary mb-4">Ücretsiz hesap oluştur, koltuk takibine başla</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
                     <div class="mb-3">
-                        <label class="form-label">{{ field.label }}</label>
-                        <input type="{{ field.field.widget.input_type }}"
-                               name="{{ field.html_name }}"
-                               class="form-control {% if field.errors %}is-invalid{% endif %}">
-                        {% for error in field.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
-                        {% endfor %}
+                        <label class="form-label text-secondary" for="id_username">Kullanıcı Adı</label>
+                        <input type="text" 
+                               name="username" 
+                               id="id_username"
+                               class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
+                               style="background: #242836; border: 1px solid #2e3344; color: #e8eaed; border-radius: 8px; padding: 12px;"
+                               placeholder="Kullanıcı adı seç"
+                               value="{{ form.username.value|default:'' }}"
+                               required>
+                        {% if form.username.errors %}
+                            <div class="invalid-feedback">{{ form.username.errors.0 }}</div>
+                        {% endif %}
                     </div>
-                {% endfor %}
-                <button type="submit" class="btn btn-dark w-100">Kayıt Ol</button>
-            </form>
-            <p class="text-center mt-3">
-                Zaten hesabın var mı? <a href="{% url 'library:login' %}">Giriş Yap</a>
-            </p>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary" for="id_password1">Şifre</label>
+                        <input type="password" 
+                               name="password1" 
+                               id="id_password1"
+                               class="form-control {% if form.password1.errors %}is-invalid{% endif %}" 
+                               style="background: #242836; border: 1px solid #2e3344; color: #e8eaed; border-radius: 8px; padding: 12px;"
+                               placeholder="Şifre oluştur"
+                               required>
+                        {% if form.password1.errors %}
+                            <div class="invalid-feedback">{{ form.password1.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary" for="id_password2">Şifre Tekrar</label>
+                        <input type="password" 
+                               name="password2" 
+                               id="id_password2"
+                               class="form-control {% if form.password2.errors %}is-invalid{% endif %}" 
+                               style="background: #242836; border: 1px solid #2e3344; color: #e8eaed; border-radius: 8px; padding: 12px;"
+                               placeholder="Şifreyi tekrar gir"
+                               required>
+                        {% if form.password2.errors %}
+                            <div class="invalid-feedback">{{ form.password2.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">
+                            {% for error in form.non_field_errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-bosmu w-100 py-3 mt-2">
+                        Hesap Oluştur
+                    </button>
+                </form>
+
+                <p class="text-center text-secondary mt-4 mb-0">
+                    Zaten hesabın var mı? 
+                    <a href="{% url 'library:login' %}" style="color: #6366f1; text-decoration: none; font-weight: 600;">Giriş Yap</a>
+                </p>
+            </div>
         </div>
     </div>
 </div>
