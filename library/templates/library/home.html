@@ -1,0 +1,76 @@
+{% extends "library/base.html" %}
+
+{% block title %}BosMu — Kütüphane Koltuk Takip{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-4 fw-bold mb-3">
+        📚 Bos<span style="color: #6366f1;">Mu</span>?
+    </h1>
+    <p class="lead text-secondary mb-4" style="max-width: 600px; margin: 0 auto;">
+        Kütüphanedeki boş koltukları anında gör, QR kod ile check-in yap, 
+        çalışma alanını kolayca bul.
+    </p>
+
+    {% if user.is_authenticated %}
+        <div class="row g-4 mt-4" style="max-width: 900px; margin: 0 auto;">
+            
+            <!-- Canlı Harita Kartı -->
+            <div class="col-md-6">
+                <div class="card h-100" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
+                    <div class="card-body text-center p-4">
+                        <div style="font-size: 48px; margin-bottom: 12px;">🗺️</div>
+                        <h5 class="card-title text-white">Canlı Harita</h5>
+                        <p class="card-text text-secondary">Koltukların anlık durumunu haritada gör</p>
+                        <a href="#" class="btn btn-bosmu mt-2">Haritayı Aç</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Check-in Kartı -->
+            <div class="col-md-6">
+                <div class="card h-100" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
+                    <div class="card-body text-center p-4">
+                        <div style="font-size: 48px; margin-bottom: 12px;">📱</div>
+                        <h5 class="card-title text-white">QR Check-in</h5>
+                        <p class="card-text text-secondary">Koltuk QR kodunu okut, hemen check-in yap</p>
+                        <a href="#" class="btn btn-bosmu mt-2">QR Okut</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doluluk Özeti -->
+            <div class="col-12">
+                <div class="card" style="background: #1a1d27; border: 1px solid #2e3344; border-radius: 12px;">
+                    <div class="card-body p-4">
+                        <h5 class="text-white mb-3">📊 Anlık Doluluk</h5>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="fw-bold fs-3" style="color: #22c55e;">—</div>
+                                <div class="text-secondary small">Boş</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-3" style="color: #ef4444;">—</div>
+                                <div class="text-secondary small">Dolu</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold fs-3 text-white">144</div>
+                                <div class="text-secondary small">Toplam</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% else %}
+        <div class="mt-4">
+            <a href="{% url 'library:signup' %}" class="btn btn-bosmu btn-lg me-2">Kayıt Ol</a>
+            <a href="{% url 'library:login' %}" class="btn btn-outline-bosmu btn-lg">Giriş Yap</a>
+        </div>
+        <p class="text-secondary mt-3">
+            Boş koltuk bulmak için ücretsiz hesap oluştur.
+        </p>
+    {% endif %}
+</div>
+{% endblock %}
