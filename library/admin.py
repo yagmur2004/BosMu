@@ -46,26 +46,23 @@ class ZoneAdmin(admin.ModelAdmin):
 # ══════════════════════════════════════
 @admin.register(Seat)
 class SeatAdmin(admin.ModelAdmin):
-    list_display = ("code", "zone", "status_badge", "is_broken", "is_active")
-    list_filter = ("zone", "is_broken", "is_active", "zone__zone_type")
+    list_display = ("code", "zone", "status_badge", "is_active")
+    list_filter = ("zone", "is_active", "zone__zone_type")
     search_fields = ("code",)
     readonly_fields = ("qr_uuid",)
     ordering = ("zone", "code")
-    list_editable = ("is_broken",)
 
-    fieldsets = (
-        ("Koltuk Bilgisi", {
-            "fields": ("zone", "code", "is_active")
-        }),
-        ("Durum", {
-            "fields": ("is_broken",),
-            "description": "Arızalı işaretlenen koltuklar haritada gri görünür ve kullanılamaz."
-        }),
-        ("QR Kodu", {
-            "fields": ("qr_uuid",),
-            "classes": ("collapse",),
-        }),
-    )
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            ("Koltuk Bilgisi", {"fields": ("zone", "code", "is_active")}),
+            ("QR Kodu", {"fields": ("qr_uuid",), "classes": ("collapse",)}),
+        ]
+        if obj and obj.zone.zone_type == "computer":
+            fieldsets.insert(1, ("Arıza Durumu", {
+                "fields": ("is_broken",),
+                "description": "Sadece bilgisayarlı koltuklar için. Arızalı işaretlenen koltuklar haritada gri görünür ve kullanılamaz."
+            }))
+        return fieldsets
 
     def status_badge(self, obj):
         if obj.is_broken:
