@@ -1,5 +1,5 @@
 # 📚 BosMu — Kütüphane Koltuk Takip Sistemi
-
+🌐 **Canlı Demo:** https://bosmu.pythonanywhere.com
 > *"Boş mu?" sorusunun dijital cevabı.*
 
 BosMu, üniversite kütüphanelerindeki koltuk doluluk durumunu **gerçek zamanlı** olarak gösteren, QR kod ile **check-in/check-out** yapılabilen bir web uygulamasıdır.
