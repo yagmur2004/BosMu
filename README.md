@@ -1,16 +1,10 @@
 # 📚 BosMu — Kütüphane Koltuk Takip Sistemi
+
 🌐 **Canlı Demo:** https://bosmu.pythonanywhere.com
+
 > *"Boş mu?" sorusunun dijital cevabı.*
 
 BosMu, üniversite kütüphanelerindeki koltuk doluluk durumunu **gerçek zamanlı** olarak gösteren, QR kod ile **check-in/check-out** yapılabilen bir web uygulamasıdır.
-
----
-
-## 🖥️ Ekran Görüntüleri
-
-| Ana Sayfa | Canlı Harita |
-|-----------|-------------|
-| Giriş yapıldığında doluluk özeti | 144 koltuk, anlık durum |
 
 ---
 
@@ -19,9 +13,12 @@ BosMu, üniversite kütüphanelerindeki koltuk doluluk durumunu **gerçek zamanl
 - 🗺️ **Canlı Koltuk Haritası** — 144 koltuğun anlık durumu (10 saniyede bir güncellenir)
 - ✅ **Check-in / Check-out** — Haritadan tıklayarak veya QR kod okutarak
 - 🔐 **Kullanıcı Sistemi** — Kayıt, giriş, çıkış
+- 🛡️ **Rol Sistemi** — Herkes / Görevli (is_staff) / Admin (is_superuser)
 - 🖥️ **Bilgisayarlı Alan** — Orta bölgedeki 18 bilgisayarlı koltuk ayrı renkte
+- ⚠️ **Arıza Bildirimi** — Görevli panelinden bilgisayar arızası işaretlenir
+- 💬 **Şikayet & Öneri** — İsim, soyisim, okul e-postası ile form
 - 📊 **Admin Paneli** — Koltuk durumları, check-in geçmişi, süre takibi
-- 📱 **QR Kod Desteği** — Her koltuğun benzersiz UUID'si ile check-in
+- 👤 **Görevli Paneli** — Günlük görevli bilgisi, arıza yönetimi
 
 ---
 
@@ -34,48 +31,82 @@ BosMu, üniversite kütüphanelerindeki koltuk doluluk durumunu **gerçek zamanl
 | Frontend | HTML, CSS, JavaScript (AJAX) |
 | API | Django REST Framework |
 | Kimlik Doğrulama | Django Auth |
+| Deploy | PythonAnywhere |
 
 ---
 
 ## 🚀 Kurulum
 
-### Gereksinimler
-- Python 3.10+
-- Git
-
-### Adımlar
-
 ```bash
-# 1. Repoyu klonla
 git clone https://github.com/yagmur2004/BosMu.git
 cd BosMu
-
-# 2. Virtual environment oluştur ve aktif et
 python -m venv venv
-
-# Windows:
-venv\Scripts\activate
-
-# Mac/Linux:
-source venv/bin/activate
-
-# 3. Bağımlılıkları yükle
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
-
-# 4. Veritabanını hazırla
 python manage.py migrate
-
-# 5. 144 koltuğu otomatik ekle
 python manage.py populate_seats
-
-# 6. Admin hesabı oluştur
 python manage.py createsuperuser
-
-# 7. Sunucuyu başlat
 python manage.py runserver
 ```
 
 Tarayıcıda aç: **http://127.0.0.1:8000/**
+
+---
+
+## 🏗️ Teknik Mimari & Tasarım Kararları
+
+### Model Yapısı
+```
+Library (1) ──► Zone (N) ──► Seat (N) ──► CheckIn (N)
+                                │
+                          DutyStaff (bağımsız)
+                          Feedback  (bağımsız)
+```
+
+| Model | Açıklama | Önemli Alanlar |
+|-------|----------|----------------|
+| `Library` | Kütüphane bilgisi | opening_time, closing_time |
+| `Zone` | Bölge (Sol/Orta/Sağ) | zone_type |
+| `Seat` | Koltuk | qr_uuid, is_active, is_broken |
+| `CheckIn` | Oturum kaydı | checked_in_at, checked_out_at |
+| `DutyStaff` | Günlük görevli | duty_date, start_time, end_time |
+| `Feedback` | Şikayet/Öneri | school_email, is_read |
+
+### Tasarım Kararları
+- **`qr_uuid`** — Her koltuk için UUID4 ile benzersiz QR kimliği. `editable=False` ile değiştirilemez.
+- **`is_occupied` property** — Ayrı alan tutmak yerine CheckIn tablosuna bakılır. Veri tutarsızlığı önlenir.
+- **`select_related`** — Tüm koltuk sorgularında zone ilişkisi tek sorguda çekilir. N+1 sorgu problemi önlenir.
+- **AJAX polling** — WebSocket yerine 10 saniyelik interval. Free tier kısıtları ve basitlik gözetildi.
+- **`is_staff` flag** — Ayrı rol modeli yerine Django'nun yerleşik alanı kullanıldı.
+- **`json.dumps()`** — Template'e Python listesi değil JSON string gönderilir. JS ile güvenli veri aktarımı.
+
+---
+
+## 🐛 Debugging & Bilinen Sorunlar
+
+### Çözülen Sorunlar
+
+| Sorun | Çözüm |
+|-------|-------|
+| `{{ seats\|safe }}` JS'de parse edilemiyordu | `json.dumps()` ile Python→JSON dönüşümü |
+| Git merge conflict (template dosyaları) | `git rebase --abort` + force push |
+| PythonAnywhere Python 3.13 uyumsuzluğu | venv Python 3.10 ile yeniden oluşturuldu |
+| `list_editable` admin hatası | `is_read` alanı `list_display`'e eklendi |
+
+### Bilinen Kısıtlamalar
+- Harita 1380px genişliğinde tasarlanmıştır, mobilde yatay scroll gerektirir.
+- SQLite production için önerilmez; büyük ölçekte PostgreSQL önerilir.
+
+---
+
+## 🧪 Testler
+
+```bash
+python manage.py test library
+```
+
+11 test — HomePageTest, AuthTest, SeatTest, FeedbackTest kapsamları mevcut.
 
 ---
 
@@ -87,40 +118,23 @@ BosMu/
 │   ├── settings.py
 │   └── urls.py
 ├── library/
-│   ├── management/
-│   │   └── commands/
-│   │       └── populate_seats.py   # 144 koltuğu ekler
-│   ├── templates/
-│   │   └── library/
-│   │       ├── base.html           # Ana şablon
-│   │       ├── home.html           # Ana sayfa
-│   │       ├── seat_map.html       # Canlı harita
-│   │       ├── login.html          # Giriş
-│   │       ├── signup.html         # Kayıt
-│   │       └── checkin_confirm.html
-│   ├── models.py                   # Library, Zone, Seat, CheckIn
-│   ├── views.py                    # Tüm view'lar + AJAX API
-│   ├── urls.py                     # URL yönlendirmeleri
-│   └── admin.py                    # Admin paneli özelleştirmeleri
+│   ├── management/commands/
+│   │   └── populate_seats.py
+│   ├── templates/library/
+│   │   ├── base.html
+│   │   ├── home.html
+│   │   ├── seat_map.html
+│   │   ├── staff_panel.html
+│   │   ├── login.html
+│   │   ├── signup.html
+│   │   └── checkin_confirm.html
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── admin.py
+│   └── tests.py
 ├── manage.py
 └── requirements.txt
-```
-
----
-
-## 🗺️ Koltuk Düzeni
-
-```
-SOL BÖLGE (93)    ORTA (22)     SAĞ BÖLGE (29)
-┌─────────────┐   ┌─────────┐   ┌──────────────┐
-│ 12 | 10 | 12│   │ 🖥️🖥️🖥️ │   │  5 koltuk    │
-│ sütun sütun │   │ 6 sıra  │   │  6 koltuk    │
-│             │   │ bilgisa-│   ├──────────────┤
-│  alt blok   │   │ yarlı   │   │  6 koltuk    │
-│  6+6+6+1    │   └─────────┘   │  6 koltuk    │
-└─────────────┘                 ├──────────────┤
-                                │  6 koltuk    │
-                                └──────────────┘
 ```
 
 ---
@@ -133,10 +147,8 @@ SOL BÖLGE (93)    ORTA (22)     SAĞ BÖLGE (29)
 | `/map/` | Canlı koltuk haritası |
 | `/login/` | Giriş |
 | `/signup/` | Kayıt |
-| `/logout/` | Çıkış |
-| `/seat/<uuid>/` | QR ile check-in |
-| `/checkout/` | Check-out |
-| `/api/seats/` | Anlık koltuk durumu (JSON) |
+| `/staff/` | Görevli paneli |
+| `/api/seats/` | Koltuk durumu (JSON) |
 | `/api/checkin/<id>/` | AJAX check-in |
 | `/api/checkout/` | AJAX check-out |
 | `/admin/` | Admin paneli |
@@ -148,7 +160,7 @@ SOL BÖLGE (93)    ORTA (22)     SAĞ BÖLGE (29)
 | İsim | GitHub |
 |------|--------|
 | Yağmur | [@yagmur2004](https://github.com/yagmur2004) |
-| Freed | [@SamiSidar](https://github.com/SamiSidar) |
+| Freed | Collaborator |
 
 ---
 
@@ -160,7 +172,8 @@ SOL BÖLGE (93)    ORTA (22)     SAĞ BÖLGE (29)
 | Sprint 1 | Modeller, Admin | ✅ |
 | Sprint 2 | Authentication, Templates | ✅ |
 | Sprint 3 | Harita, Check-in/out, AJAX | ✅ |
-| Sprint 4 | README, Dokümantasyon | ✅ |
+| Sprint 4 | Görevli, Şikayet, Arıza, Admin | ✅ |
+| Sprint 5 | Rol sistemi, Staff paneli, Deploy | ✅ |
 
 ---
 
