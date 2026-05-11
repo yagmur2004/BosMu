@@ -11,10 +11,12 @@ from .models import Library, Zone, Seat, CheckIn, DutyStaff, Feedback
 
 
 def is_staff(user):
+    """Kullanıcının kütüphane görevlisi olup olmadığını kontrol eder."""
     return user.is_authenticated and user.is_staff
 
 
 def home(request):
+    """Ana sayfa: doluluk istatistikleri, görevli ve kütüphane bilgisi."""
     total = Seat.objects.filter(is_active=True).count()
     occupied = CheckIn.objects.filter(checked_out_at__isnull=True).count()
     broken = Seat.objects.filter(is_broken=True).count()
@@ -33,6 +35,7 @@ def home(request):
 
 
 def signup_view(request):
+    """Yeni kullanıcı kaydı. Başarılı kayıt sonrası otomatik giriş yapılır."""
     if request.method == "POST":
         form = UserCreationForm(request.POST)
         if form.is_valid():
@@ -46,6 +49,7 @@ def signup_view(request):
 
 
 def login_view(request):
+    """Kullanıcı girişi. Staff kullanıcılar görevli paneline yönlendirilir."""
     if request.method == "POST":
         form = AuthenticationForm(data=request.POST)
         if form.is_valid():
@@ -61,6 +65,7 @@ def login_view(request):
 
 
 def logout_view(request):
+    """Oturumu kapatır ve ana sayfaya yönlendirir."""
     logout(request)
     messages.info(request, "Çıkış yapıldı.")
     return redirect("library:home")
@@ -71,6 +76,7 @@ def logout_view(request):
 # ═══════════════════════════════════════
 
 def feedback_view(request):
+    """Şikayet ve öneri formu. Ad, soyad ve okul e-postası zorunludur."""
     if request.method == "POST":
         first_name = request.POST.get("first_name", "").strip()
         last_name = request.POST.get("last_name", "").strip()
@@ -100,6 +106,7 @@ def feedback_view(request):
 # ═══════════════════════════════════════
 
 def seat_map(request):
+    """Canlı koltuk haritası. Login gerektirmez, herkes görüntüleyebilir."""
     seats = Seat.objects.select_related("zone").filter(is_active=True)
 
     seat_list = []
@@ -133,17 +140,17 @@ def seat_map(request):
 
 
 # ═══════════════════════════════════════
-#  CHECK-IN / CHECK-OUT — Login gerektirmez
+#  CHECK-IN / CHECK-OUT
 # ═══════════════════════════════════════
 
 def seat_checkin(request, uuid):
+    """QR kod ile koltuğa check-in. Arızalı veya dolu koltuklar reddedilir."""
     seat = get_object_or_404(Seat, qr_uuid=uuid, is_active=True)
 
     if seat.is_broken:
         messages.error(request, f"{seat.code} koltuğu arızalı, kullanılamaz.")
         return redirect("library:seat_map")
 
-    # Anonim kullanıcılar için session bazlı check-in
     if not request.user.is_authenticated:
         messages.info(request, "Check-in yapabilmek için giriş yapmalısın.")
         return redirect("library:login")
@@ -166,6 +173,7 @@ def seat_checkin(request, uuid):
 
 
 def checkout(request):
+    """Aktif check-in'den çıkış yapar ve checked_out_at alanını günceller."""
     if not request.user.is_authenticated:
         return redirect("library:home")
 
@@ -187,6 +195,7 @@ def checkout(request):
 
 @user_passes_test(is_staff, login_url="/login/")
 def staff_panel(request):
+    """Görevli paneli. Sadece is_staff kullanıcılar erişebilir."""
     today_staff = DutyStaff.objects.filter(duty_date=date.today()).first()
     broken_seats = Seat.objects.filter(is_broken=True).select_related("zone")
     computer_seats = Seat.objects.filter(zone__zone_type="computer", is_active=True).select_related("zone")
@@ -205,7 +214,7 @@ def staff_panel(request):
 
 @user_passes_test(is_staff, login_url="/login/")
 def toggle_broken(request, seat_id):
-    """Koltuğu arızalı/normal olarak değiştir"""
+    """Bilgisayarlı koltuğu arızalı/normal olarak değiştirir."""
     if request.method == "POST":
         seat = get_object_or_404(Seat, id=seat_id, zone__zone_type="computer")
         seat.is_broken = not seat.is_broken
@@ -216,10 +225,11 @@ def toggle_broken(request, seat_id):
 
 
 # ═══════════════════════════════════════
-#  AJAX API — Login gerektirmez
+#  AJAX API
 # ═══════════════════════════════════════
 
 def api_seats_status(request):
+    """AJAX: Tüm koltukların anlık durumunu JSON olarak döndürür."""
     seats = Seat.objects.select_related("zone").filter(is_active=True)
     data = []
     for seat in seats:
@@ -246,6 +256,7 @@ def api_seats_status(request):
 
 
 def api_checkin(request, seat_id):
+    """AJAX: Koltuğa check-in. Giriş yapmış kullanıcılar için."""
     if request.method != "POST":
         return JsonResponse({"error": "POST gerekli"}, status=405)
     if not request.user.is_authenticated:
@@ -263,6 +274,7 @@ def api_checkin(request, seat_id):
 
 
 def api_checkout(request):
+    """AJAX: Aktif check-in'den çıkış."""
     if request.method != "POST":
         return JsonResponse({"error": "POST gerekli"}, status=405)
     if not request.user.is_authenticated:
