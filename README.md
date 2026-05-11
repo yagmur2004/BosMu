@@ -148,7 +148,7 @@ SOL BÖLGE (93)    ORTA (22)     SAĞ BÖLGE (29)
 | İsim | GitHub |
 |------|--------|
 | Yağmur | [@yagmur2004](https://github.com/yagmur2004) |
-| Freed | Collaborator |
+| Freed | [@SamiSidar]((https://github.com/SamiSidar)) |
 
 ---
 
