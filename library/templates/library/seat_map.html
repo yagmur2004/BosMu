@@ -28,6 +28,7 @@
 .seat.occupied { background:#ef4444; box-shadow:0 0 8px rgba(239,68,68,.25); }
 .seat.computer { background:#3b82f6; box-shadow:0 0 8px rgba(59,130,246,.25); }
 .seat.computer.occupied { background:#ef4444; box-shadow:0 0 8px rgba(239,68,68,.25); }
+.seat.broken { background:#6b7280; box-shadow:0 0 8px rgba(107,114,128,.25); cursor:not-allowed; }
 .seat:hover { transform:scale(1.25); z-index:50; }
 .seat.computer::after { content:'🖥'; font-size:14px; }
 .seat.computer.occupied::after { opacity:.6; }
@@ -132,12 +133,14 @@ function addSeat(x, y, zone, isComputer) {
     const info = seatStatusMap[code];
     const isOccupied = info ? info.is_occupied : false;
 
-    let cls = 'seat ';
-    if (isOccupied) {
-        cls += isComputer ? 'computer occupied' : 'occupied';
-    } else {
-        cls += isComputer ? 'computer' : 'empty';
-    }
+   let cls = 'seat ';
+if (info && info.is_broken) {
+    cls += 'broken';
+} else if (isOccupied) {
+    cls += isComputer ? 'computer occupied' : 'occupied';
+} else {
+    cls += isComputer ? 'computer' : 'empty';
+}
 
     el.className = cls;
     el.dataset.code = code;
@@ -346,5 +349,6 @@ setInterval(() => {
         document.getElementById('s-occupied').textContent = data.occupied;
     });
 }, 10000);
+
 </script>
 {% endblock %}
