@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
@@ -10,18 +10,17 @@ import json
 from .models import Library, Zone, Seat, CheckIn, DutyStaff, Feedback
 
 
+def is_staff(user):
+    return user.is_authenticated and user.is_staff
+
+
 def home(request):
     total = Seat.objects.filter(is_active=True).count()
     occupied = CheckIn.objects.filter(checked_out_at__isnull=True).count()
     broken = Seat.objects.filter(is_broken=True).count()
     empty = total - occupied - broken
-
-    # Bugünün görevli çalışanı
     today_staff = DutyStaff.objects.filter(duty_date=date.today()).first()
-
-    # Kütüphane bilgisi
     library = Library.objects.first()
-
     context = {
         "total": total,
         "occupied": occupied,
@@ -53,6 +52,8 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             messages.success(request, "Giriş yapıldı!")
+            if user.is_staff:
+                return redirect("library:staff_panel")
             return redirect("library:home")
     else:
         form = AuthenticationForm()
@@ -62,7 +63,7 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     messages.info(request, "Çıkış yapıldı.")
-    return redirect("library:login")
+    return redirect("library:home")
 
 
 # ═══════════════════════════════════════
@@ -95,10 +96,9 @@ def feedback_view(request):
 
 
 # ═══════════════════════════════════════
-#  CANLI HARİTA
+#  CANLI HARİTA — Login gerektirmez
 # ═══════════════════════════════════════
 
-@login_required
 def seat_map(request):
     seats = Seat.objects.select_related("zone").filter(is_active=True)
 
@@ -115,11 +115,13 @@ def seat_map(request):
             "user": active.user.username if active else None,
         })
 
-    user_checkin = CheckIn.objects.filter(
-        user=request.user, checked_out_at__isnull=True
-    ).select_related("seat").first()
+    # Kullanıcının aktif check-in'i
+    user_checkin = None
+    if request.user.is_authenticated:
+        user_checkin = CheckIn.objects.filter(
+            user=request.user, checked_out_at__isnull=True
+        ).select_related("seat").first()
 
-    # Bugünün görevlisi
     today_staff = DutyStaff.objects.filter(duty_date=date.today()).first()
 
     context = {
@@ -131,16 +133,20 @@ def seat_map(request):
 
 
 # ═══════════════════════════════════════
-#  CHECK-IN / CHECK-OUT
+#  CHECK-IN / CHECK-OUT — Login gerektirmez
 # ═══════════════════════════════════════
 
-@login_required
 def seat_checkin(request, uuid):
     seat = get_object_or_404(Seat, qr_uuid=uuid, is_active=True)
 
     if seat.is_broken:
         messages.error(request, f"{seat.code} koltuğu arızalı, kullanılamaz.")
         return redirect("library:seat_map")
+
+    # Anonim kullanıcılar için session bazlı check-in
+    if not request.user.is_authenticated:
+        messages.info(request, "Check-in yapabilmek için giriş yapmalısın.")
+        return redirect("library:login")
 
     existing = CheckIn.objects.filter(user=request.user, checked_out_at__isnull=True).first()
     if existing:
@@ -159,8 +165,10 @@ def seat_checkin(request, uuid):
     return render(request, "library/checkin_confirm.html", {"seat": seat})
 
 
-@login_required
 def checkout(request):
+    if not request.user.is_authenticated:
+        return redirect("library:home")
+
     active = CheckIn.objects.filter(user=request.user, checked_out_at__isnull=True).first()
     if not active:
         messages.info(request, "Aktif check-in'in yok.")
@@ -174,10 +182,43 @@ def checkout(request):
 
 
 # ═══════════════════════════════════════
-#  AJAX API
+#  STAFF PANELİ
 # ═══════════════════════════════════════
 
-@login_required
+@user_passes_test(is_staff, login_url="/login/")
+def staff_panel(request):
+    today_staff = DutyStaff.objects.filter(duty_date=date.today()).first()
+    broken_seats = Seat.objects.filter(is_broken=True).select_related("zone")
+    computer_seats = Seat.objects.filter(zone__zone_type="computer", is_active=True).select_related("zone")
+    feedbacks = Feedback.objects.filter(is_read=False).order_by("-created_at")[:10]
+    library = Library.objects.first()
+
+    context = {
+        "today_staff": today_staff,
+        "broken_seats": broken_seats,
+        "computer_seats": computer_seats,
+        "feedbacks": feedbacks,
+        "library": library,
+    }
+    return render(request, "library/staff_panel.html", context)
+
+
+@user_passes_test(is_staff, login_url="/login/")
+def toggle_broken(request, seat_id):
+    """Koltuğu arızalı/normal olarak değiştir"""
+    if request.method == "POST":
+        seat = get_object_or_404(Seat, id=seat_id, zone__zone_type="computer")
+        seat.is_broken = not seat.is_broken
+        seat.save()
+        status = "arızalı" if seat.is_broken else "normal"
+        messages.success(request, f"{seat.code} koltuğu {status} olarak işaretlendi.")
+    return redirect("library:staff_panel")
+
+
+# ═══════════════════════════════════════
+#  AJAX API — Login gerektirmez
+# ═══════════════════════════════════════
+
 def api_seats_status(request):
     seats = Seat.objects.select_related("zone").filter(is_active=True)
     data = []
@@ -204,10 +245,11 @@ def api_seats_status(request):
     })
 
 
-@login_required
 def api_checkin(request, seat_id):
     if request.method != "POST":
         return JsonResponse({"error": "POST gerekli"}, status=405)
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Giriş gerekli."}, status=401)
     seat = get_object_or_404(Seat, id=seat_id, is_active=True)
     if seat.is_broken:
         return JsonResponse({"error": "Koltuk arızalı."}, status=400)
@@ -220,10 +262,11 @@ def api_checkin(request, seat_id):
     return JsonResponse({"success": True, "seat": seat.code, "status": "occupied"})
 
 
-@login_required
 def api_checkout(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST gerekli"}, status=405)
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Giriş gerekli."}, status=401)
     active = CheckIn.objects.filter(user=request.user, checked_out_at__isnull=True).first()
     if not active:
         return JsonResponse({"error": "Aktif check-in yok."}, status=400)

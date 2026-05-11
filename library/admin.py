@@ -1,36 +1,22 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from django.utils import timezone
 from .models import Library, Zone, Seat, CheckIn, DutyStaff, Feedback
 
 
-# ══════════════════════════════════════
-#  Admin Site Başlığı
-# ══════════════════════════════════════
 admin.site.site_header = "📚 BosMu Yönetim Paneli"
 admin.site.site_title = "BosMu Admin"
 admin.site.index_title = "Hoş Geldiniz"
 
 
-# ══════════════════════════════════════
-#  Kütüphane
-# ══════════════════════════════════════
 @admin.register(Library)
 class LibraryAdmin(admin.ModelAdmin):
     list_display = ("name", "opening_time", "closing_time", "address")
     fieldsets = (
-        ("Kütüphane Bilgileri", {
-            "fields": ("name", "address")
-        }),
-        ("Çalışma Saatleri", {
-            "fields": ("opening_time", "closing_time")
-        }),
+        ("Kütüphane Bilgileri", {"fields": ("name", "address")}),
+        ("Çalışma Saatleri", {"fields": ("opening_time", "closing_time")}),
     )
 
 
-# ══════════════════════════════════════
-#  Bölge
-# ══════════════════════════════════════
 @admin.register(Zone)
 class ZoneAdmin(admin.ModelAdmin):
     list_display = ("name", "library", "zone_type", "floor", "seat_count")
@@ -41,9 +27,6 @@ class ZoneAdmin(admin.ModelAdmin):
     seat_count.short_description = "Koltuk Sayısı"
 
 
-# ══════════════════════════════════════
-#  Koltuk
-# ══════════════════════════════════════
 @admin.register(Seat)
 class SeatAdmin(admin.ModelAdmin):
     list_display = ("code", "zone", "status_badge", "is_active")
@@ -60,28 +43,19 @@ class SeatAdmin(admin.ModelAdmin):
         if obj and obj.zone.zone_type == "computer":
             fieldsets.insert(1, ("Arıza Durumu", {
                 "fields": ("is_broken",),
-                "description": "Sadece bilgisayarlı koltuklar için. Arızalı işaretlenen koltuklar haritada gri görünür ve kullanılamaz."
+                "description": "Sadece bilgisayarlı koltuklar için."
             }))
         return fieldsets
 
     def status_badge(self, obj):
         if obj.is_broken:
-            return format_html(
-                '<span style="color:white;background:#6b7280;padding:2px 10px;border-radius:4px;">⚠️ Arızalı</span>'
-            )
+            return format_html('<span style="color:white;background:#6b7280;padding:2px 10px;border-radius:4px;">⚠️ Arızalı</span>')
         if obj.is_occupied:
-            return format_html(
-                '<span style="color:white;background:#ef4444;padding:2px 10px;border-radius:4px;">Dolu</span>'
-            )
-        return format_html(
-            '<span style="color:white;background:#22c55e;padding:2px 10px;border-radius:4px;">Boş</span>'
-        )
+            return format_html('<span style="color:white;background:#ef4444;padding:2px 10px;border-radius:4px;">Dolu</span>')
+        return format_html('<span style="color:white;background:#22c55e;padding:2px 10px;border-radius:4px;">Boş</span>')
     status_badge.short_description = "Durum"
 
 
-# ══════════════════════════════════════
-#  Check-in
-# ══════════════════════════════════════
 @admin.register(CheckIn)
 class CheckInAdmin(admin.ModelAdmin):
     list_display = ("user", "seat", "checked_in_at", "checked_out_at", "duration", "is_active_badge")
@@ -92,12 +66,8 @@ class CheckInAdmin(admin.ModelAdmin):
 
     def is_active_badge(self, obj):
         if obj.checked_out_at is None:
-            return format_html(
-                '<span style="color:white;background:#ef4444;padding:2px 10px;border-radius:4px;">İçeride</span>'
-            )
-        return format_html(
-            '<span style="color:white;background:#6b7280;padding:2px 10px;border-radius:4px;">Çıktı</span>'
-        )
+            return format_html('<span style="color:white;background:#ef4444;padding:2px 10px;border-radius:4px;">İçeride</span>')
+        return format_html('<span style="color:white;background:#6b7280;padding:2px 10px;border-radius:4px;">Çıktı</span>')
     is_active_badge.short_description = "Durum"
 
     def duration(self, obj):
@@ -109,27 +79,16 @@ class CheckInAdmin(admin.ModelAdmin):
     duration.short_description = "Süre"
 
 
-# ══════════════════════════════════════
-#  Görevli Çalışan
-# ══════════════════════════════════════
 @admin.register(DutyStaff)
 class DutyStaffAdmin(admin.ModelAdmin):
     list_display = ("full_name_display", "email", "duty_date", "start_time", "end_time", "today_badge")
     list_filter = ("duty_date",)
     search_fields = ("first_name", "last_name", "email")
     ordering = ("-duty_date",)
-
     fieldsets = (
-        ("Çalışan Bilgileri", {
-            "fields": ("first_name", "last_name", "email")
-        }),
-        ("Görev Zamanı", {
-            "fields": ("duty_date", "start_time", "end_time")
-        }),
-        ("Ek Bilgi", {
-            "fields": ("note",),
-            "classes": ("collapse",),
-        }),
+        ("Çalışan Bilgileri", {"fields": ("first_name", "last_name", "email")}),
+        ("Görev Zamanı", {"fields": ("duty_date", "start_time", "end_time")}),
+        ("Ek Bilgi", {"fields": ("note",), "classes": ("collapse",)}),
     )
 
     def full_name_display(self, obj):
@@ -139,16 +98,11 @@ class DutyStaffAdmin(admin.ModelAdmin):
     def today_badge(self, obj):
         from datetime import date
         if obj.duty_date == date.today():
-            return format_html(
-                '<span style="color:white;background:#6366f1;padding:2px 10px;border-radius:4px;">📍 Bugün</span>'
-            )
+            return format_html('<span style="color:white;background:#6366f1;padding:2px 10px;border-radius:4px;">📍 Bugün</span>')
         return "—"
     today_badge.short_description = "Bugün?"
 
 
-# ══════════════════════════════════════
-#  Geri Bildirim (Şikayet/Öneri)
-# ══════════════════════════════════════
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
     list_display = ("full_name_display", "school_email", "feedback_type_badge", "created_at", "is_read", "is_read_badge")
@@ -158,16 +112,14 @@ class FeedbackAdmin(admin.ModelAdmin):
     readonly_fields = ("first_name", "last_name", "school_email", "feedback_type", "message", "created_at")
     list_editable = ("is_read",)
 
+    # Add butonu kaldır
+    def has_add_permission(self, request):
+        return False
+
     fieldsets = (
-        ("Gönderen", {
-            "fields": ("first_name", "last_name", "school_email")
-        }),
-        ("İçerik", {
-            "fields": ("feedback_type", "message", "created_at")
-        }),
-        ("Durum", {
-            "fields": ("is_read",)
-        }),
+        ("Gönderen", {"fields": ("first_name", "last_name", "school_email")}),
+        ("İçerik", {"fields": ("feedback_type", "message", "created_at")}),
+        ("Durum", {"fields": ("is_read",)}),
     )
 
     def full_name_display(self, obj):
@@ -175,17 +127,9 @@ class FeedbackAdmin(admin.ModelAdmin):
     full_name_display.short_description = "Ad Soyad"
 
     def feedback_type_badge(self, obj):
-        colors = {
-            "complaint": "#ef4444",
-            "suggestion": "#3b82f6",
-            "other": "#6b7280",
-        }
+        colors = {"complaint": "#ef4444", "suggestion": "#3b82f6", "other": "#6b7280"}
         color = colors.get(obj.feedback_type, "#6b7280")
-        return format_html(
-            '<span style="color:white;background:{};padding:2px 10px;border-radius:4px;">{}</span>',
-            color,
-            obj.get_feedback_type_display()
-        )
+        return format_html('<span style="color:white;background:{};padding:2px 10px;border-radius:4px;">{}</span>', color, obj.get_feedback_type_display())
     feedback_type_badge.short_description = "Tür"
 
     def is_read_badge(self, obj):

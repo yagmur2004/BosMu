@@ -4,7 +4,6 @@ from . import views
 app_name = "library"
 
 urlpatterns = [
-    # Sayfalar
     path("", views.home, name="home"),
     path("signup/", views.signup_view, name="signup"),
     path("login/", views.login_view, name="login"),
@@ -13,6 +12,8 @@ urlpatterns = [
     path("seat/<uuid:uuid>/", views.seat_checkin, name="seat_checkin"),
     path("checkout/", views.checkout, name="checkout"),
     path("feedback/", views.feedback_view, name="feedback"),
+    path("staff/", views.staff_panel, name="staff_panel"),
+    path("staff/broken/<int:seat_id>/", views.toggle_broken, name="toggle_broken"),
 
     # AJAX API
     path("api/seats/", views.api_seats_status, name="api_seats_status"),
