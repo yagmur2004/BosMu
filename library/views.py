@@ -1,11 +1,26 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
+from django.utils import timezone
+from .models import Library, Zone, Seat, CheckIn
 
 
 def home(request):
-    return render(request, "library/home.html")
+    zones = Zone.objects.all()
+    total = Seat.objects.filter(is_active=True).count()
+    occupied = CheckIn.objects.filter(checked_out_at__isnull=True).count()
+    empty = total - occupied
+
+    context = {
+        "zones": zones,
+        "total": total,
+        "occupied": occupied,
+        "empty": empty,
+    }
+    return render(request, "library/home.html", context)
 
 
 def signup_view(request):
@@ -38,3 +53,165 @@ def logout_view(request):
     logout(request)
     messages.info(request, "Çıkış yapıldı.")
     return redirect("library:login")
+
+
+# ═══════════════════════════════════════
+#  CANLI HARİTA
+# ═══════════════════════════════════════
+
+@login_required
+def seat_map(request):
+    """Kütüphane koltuk haritası sayfası"""
+    seats = Seat.objects.select_related("zone").filter(is_active=True)
+
+    seat_data = []
+    for seat in seats:
+        active_checkin = seat.checkins.filter(checked_out_at__isnull=True).first()
+        seat_data.append({
+            "id": seat.id,
+            "code": seat.code,
+            "zone": seat.zone.name,
+            "zone_type": seat.zone.zone_type,
+            "is_occupied": active_checkin is not None,
+            "user": active_checkin.user.username if active_checkin else None,
+        })
+
+    # Kullanıcının aktif check-in'i var mı?
+    user_checkin = CheckIn.objects.filter(
+        user=request.user, checked_out_at__isnull=True
+    ).select_related("seat").first()
+
+    context = {
+        "seats": seat_data,
+        "user_checkin": user_checkin,
+    }
+    return render(request, "library/seat_map.html", context)
+
+
+# ═══════════════════════════════════════
+#  QR CHECK-IN
+# ═══════════════════════════════════════
+
+@login_required
+def seat_checkin(request, uuid):
+    """QR kod ile koltuğa check-in"""
+    seat = get_object_or_404(Seat, qr_uuid=uuid, is_active=True)
+
+    # Kullanıcının zaten aktif check-in'i var mı?
+    existing = CheckIn.objects.filter(
+        user=request.user, checked_out_at__isnull=True
+    ).first()
+
+    if existing:
+        messages.warning(
+            request,
+            f"Zaten {existing.seat.code} koltuğunda oturuyorsun. Önce check-out yap."
+        )
+        return redirect("library:seat_map")
+
+    # Koltuk dolu mu?
+    if seat.is_occupied:
+        messages.error(request, f"{seat.code} koltuğu şu an dolu.")
+        return redirect("library:seat_map")
+
+    if request.method == "POST":
+        CheckIn.objects.create(user=request.user, seat=seat)
+        messages.success(request, f"{seat.code} koltuğuna check-in yaptın! ✅")
+        return redirect("library:seat_map")
+
+    context = {"seat": seat}
+    return render(request, "library/checkin_confirm.html", context)
+
+
+@login_required
+def checkout(request):
+    """Aktif check-in'den çıkış"""
+    active = CheckIn.objects.filter(
+        user=request.user, checked_out_at__isnull=True
+    ).first()
+
+    if not active:
+        messages.info(request, "Aktif check-in'in yok.")
+        return redirect("library:seat_map")
+
+    if request.method == "POST":
+        active.checked_out_at = timezone.now()
+        active.save()
+        messages.success(request, f"{active.seat.code} koltuğundan check-out yaptın.")
+        return redirect("library:seat_map")
+
+    return redirect("library:seat_map")
+
+
+# ═══════════════════════════════════════
+#  AJAX API
+# ═══════════════════════════════════════
+
+@login_required
+def api_seats_status(request):
+    """AJAX: Tüm koltukların anlık durumunu JSON olarak döndür"""
+    seats = Seat.objects.select_related("zone").filter(is_active=True)
+
+    data = []
+    for seat in seats:
+        active = seat.checkins.filter(checked_out_at__isnull=True).first()
+        data.append({
+            "id": seat.id,
+            "code": seat.code,
+            "zone": seat.zone.name,
+            "zone_type": seat.zone.zone_type,
+            "status": "occupied" if active else "empty",
+            "user": active.user.username if active else None,
+        })
+
+    total = len(data)
+    occupied = sum(1 for s in data if s["status"] == "occupied")
+
+    return JsonResponse({
+        "seats": data,
+        "total": total,
+        "occupied": occupied,
+        "empty": total - occupied,
+    })
+
+
+@login_required
+def api_checkin(request, seat_id):
+    """AJAX: Haritadan tıklayarak check-in"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST gerekli"}, status=405)
+
+    seat = get_object_or_404(Seat, id=seat_id, is_active=True)
+
+    # Zaten aktif check-in var mı?
+    existing = CheckIn.objects.filter(
+        user=request.user, checked_out_at__isnull=True
+    ).first()
+    if existing:
+        return JsonResponse({
+            "error": f"Zaten {existing.seat.code} koltuğundasın. Önce check-out yap."
+        }, status=400)
+
+    if seat.is_occupied:
+        return JsonResponse({"error": "Koltuk dolu."}, status=400)
+
+    CheckIn.objects.create(user=request.user, seat=seat)
+    return JsonResponse({"success": True, "seat": seat.code, "status": "occupied"})
+
+
+@login_required
+def api_checkout(request):
+    """AJAX: Haritadan check-out"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST gerekli"}, status=405)
+
+    active = CheckIn.objects.filter(
+        user=request.user, checked_out_at__isnull=True
+    ).first()
+
+    if not active:
+        return JsonResponse({"error": "Aktif check-in yok."}, status=400)
+
+    active.checked_out_at = timezone.now()
+    active.save()
+    return JsonResponse({"success": True, "seat": active.seat.code, "status": "empty"})
