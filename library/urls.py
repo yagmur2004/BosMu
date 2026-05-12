@@ -15,6 +15,13 @@ urlpatterns = [
     path("staff/", views.staff_panel, name="staff_panel"),
     path("staff/broken/<int:seat_id>/", views.toggle_broken, name="toggle_broken"),
 
+    # Ana giriş QR
+    path("entry/<uuid:token>/", views.entry_qr_scan, name="entry_qr_scan"),
+    path("entry-qr/", views.entry_qr_image, name="entry_qr_image"),
+    path("scan/", views.qr_scanner, name="qr_scanner"),
+    # Koltuk QR
+    path("qr/<int:seat_id>/", views.seat_qr, name="seat_qr"),
+
     # AJAX API
     path("api/seats/", views.api_seats_status, name="api_seats_status"),
     path("api/checkin/<int:seat_id>/", views.api_checkin, name="api_checkin"),

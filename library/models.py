@@ -103,18 +103,32 @@ class Feedback(models.Model):
     first_name = models.CharField(max_length=100, verbose_name="Ad")
     last_name = models.CharField(max_length=100, verbose_name="Soyad")
     school_email = models.EmailField(verbose_name="Okul E-postası")
-    feedback_type = models.CharField(
-        max_length=20, choices=FEEDBACK_TYPES,
-        default="complaint", verbose_name="Tür"
-    )
+    feedback_type = models.CharField(max_length=20, choices=FEEDBACK_TYPES, default="complaint", verbose_name="Tür")
     message = models.TextField(verbose_name="Mesaj")
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False, verbose_name="Okundu")
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} — {self.get_feedback_type_display()} ({self.created_at.strftime('%d.%m.%Y')})"
+        return f"{self.first_name} {self.last_name} — {self.get_feedback_type_display()}"
 
     class Meta:
         ordering = ["-created_at"]
         verbose_name = "Geri Bildirim"
         verbose_name_plural = "Geri Bildirimler"
+
+
+class LibraryEntryQR(models.Model):
+    """Kütüphane girişindeki ana QR. Her okumada yenilenir, eski QR geçersiz olur."""
+    current_token = models.UUIDField(default=uuid.uuid4)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def refresh(self):
+        self.current_token = uuid.uuid4()
+        self.save()
+
+    def __str__(self):
+        return f"Ana QR — {self.current_token}"
+
+    class Meta:
+        verbose_name = "Ana Giriş QR"
+        verbose_name_plural = "Ana Giriş QR"

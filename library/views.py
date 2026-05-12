@@ -1,13 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from datetime import date
 import json
-from .models import Library, Zone, Seat, CheckIn, DutyStaff, Feedback
+import qrcode
+import io
+from .models import Library, Zone, Seat, CheckIn, DutyStaff, Feedback, LibraryEntryQR
 
 
 def is_staff(user):
@@ -23,6 +25,7 @@ def home(request):
     empty = total - occupied - broken
     today_staff = DutyStaff.objects.filter(duty_date=date.today()).first()
     library = Library.objects.first()
+    has_entry = request.session.get("has_entry", False)
     context = {
         "total": total,
         "occupied": occupied,
@@ -30,12 +33,13 @@ def home(request):
         "broken": broken,
         "today_staff": today_staff,
         "library": library,
+        "has_entry": has_entry,
     }
     return render(request, "library/home.html", context)
 
 
 def signup_view(request):
-    """Yeni kullanıcı kaydı. Başarılı kayıt sonrası otomatik giriş yapılır."""
+    """Yeni kullanıcı kaydı."""
     if request.method == "POST":
         form = UserCreationForm(request.POST)
         if form.is_valid():
@@ -65,10 +69,51 @@ def login_view(request):
 
 
 def logout_view(request):
-    """Oturumu kapatır ve ana sayfaya yönlendirir."""
+    """Oturumu kapatır."""
     logout(request)
+    request.session.pop("has_entry", None)
     messages.info(request, "Çıkış yapıldı.")
     return redirect("library:home")
+
+
+# ═══════════════════════════════════════
+#  ANA GİRİŞ QR SİSTEMİ
+# ═══════════════════════════════════════
+
+def entry_qr_scan(request, token):
+    """Ana QR okutulunca çağrılır. Token geçerliyse session'a giriş hakkı verir, QR yenilenir."""
+    entry_qr = LibraryEntryQR.objects.first()
+
+    if not entry_qr:
+        messages.error(request, "Sistem hatası. Görevliye başvurun.")
+        return redirect("library:home")
+
+    if str(entry_qr.current_token) == str(token):
+        # Token geçerli — session'a giriş hakkı ver, QR'ı yenile
+        request.session["has_entry"] = True
+        entry_qr.refresh()
+        messages.success(request, "Kütüphaneye hoş geldiniz! Artık koltuk seçebilirsiniz. 🎉")
+        return redirect("library:seat_map")
+    else:
+        messages.error(request, "Bu QR kodu geçersiz veya süresi dolmuş. Görevliden yeni QR isteyin.")
+        return redirect("library:home")
+
+
+def entry_qr_image(request):
+    """Staff için ana QR kodunu PNG olarak gösterir."""
+    if not request.user.is_staff:
+        return redirect("library:home")
+
+    entry_qr = LibraryEntryQR.objects.first()
+    if not entry_qr:
+        entry_qr = LibraryEntryQR.objects.create()
+
+    url = f"https://bosmu.pythonanywhere.com/entry/{entry_qr.current_token}/"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return HttpResponse(buf, content_type='image/png')
 
 
 # ═══════════════════════════════════════
@@ -76,7 +121,7 @@ def logout_view(request):
 # ═══════════════════════════════════════
 
 def feedback_view(request):
-    """Şikayet ve öneri formu. Ad, soyad ve okul e-postası zorunludur."""
+    """Şikayet ve öneri formu."""
     if request.method == "POST":
         first_name = request.POST.get("first_name", "").strip()
         last_name = request.POST.get("last_name", "").strip()
@@ -102,11 +147,11 @@ def feedback_view(request):
 
 
 # ═══════════════════════════════════════
-#  CANLI HARİTA — Login gerektirmez
+#  CANLI HARİTA
 # ═══════════════════════════════════════
 
 def seat_map(request):
-    """Canlı koltuk haritası. Login gerektirmez, herkes görüntüleyebilir."""
+    """Canlı koltuk haritası. Login gerektirmez."""
     seats = Seat.objects.select_related("zone").filter(is_active=True)
 
     seat_list = []
@@ -122,7 +167,6 @@ def seat_map(request):
             "user": active.user.username if active else None,
         })
 
-    # Kullanıcının aktif check-in'i
     user_checkin = None
     if request.user.is_authenticated:
         user_checkin = CheckIn.objects.filter(
@@ -130,11 +174,13 @@ def seat_map(request):
         ).select_related("seat").first()
 
     today_staff = DutyStaff.objects.filter(duty_date=date.today()).first()
+    has_entry = request.session.get("has_entry", False)
 
     context = {
         "seats_json": json.dumps(seat_list),
         "user_checkin": user_checkin,
         "today_staff": today_staff,
+        "has_entry": has_entry,
     }
     return render(request, "library/seat_map.html", context)
 
@@ -144,7 +190,7 @@ def seat_map(request):
 # ═══════════════════════════════════════
 
 def seat_checkin(request, uuid):
-    """QR kod ile koltuğa check-in. Arızalı veya dolu koltuklar reddedilir."""
+    """QR kod ile koltuğa check-in. Giriş tokeni gerekli."""
     seat = get_object_or_404(Seat, qr_uuid=uuid, is_active=True)
 
     if seat.is_broken:
@@ -152,8 +198,13 @@ def seat_checkin(request, uuid):
         return redirect("library:seat_map")
 
     if not request.user.is_authenticated:
-        messages.info(request, "Check-in yapabilmek için giriş yapmalısın.")
+        messages.info(request, "Check-in için giriş yapman gerekiyor.")
         return redirect("library:login")
+
+    # Giriş tokeni kontrolü
+    if not request.session.get("has_entry", False):
+        messages.warning(request, "Önce kütüphane girişindeki QR kodu okutmalısın.")
+        return redirect("library:seat_map")
 
     existing = CheckIn.objects.filter(user=request.user, checked_out_at__isnull=True).first()
     if existing:
@@ -173,7 +224,7 @@ def seat_checkin(request, uuid):
 
 
 def checkout(request):
-    """Aktif check-in'den çıkış yapar ve checked_out_at alanını günceller."""
+    """Check-out yapar ve giriş hakkını sıfırlar."""
     if not request.user.is_authenticated:
         return redirect("library:home")
 
@@ -181,10 +232,13 @@ def checkout(request):
     if not active:
         messages.info(request, "Aktif check-in'in yok.")
         return redirect("library:seat_map")
+
     if request.method == "POST":
         active.checked_out_at = timezone.now()
         active.save()
-        messages.success(request, f"{active.seat.code} koltuğundan check-out yaptın.")
+        # Giriş hakkını sıfırla — tekrar ana QR okutması gerekecek
+        request.session.pop("has_entry", None)
+        messages.success(request, f"{active.seat.code} koltuğundan check-out yaptın. Tekrar gelmek için kapıdaki QR'ı okut.")
         return redirect("library:seat_map")
     return redirect("library:seat_map")
 
@@ -202,12 +256,18 @@ def staff_panel(request):
     feedbacks = Feedback.objects.filter(is_read=False).order_by("-created_at")[:10]
     library = Library.objects.first()
 
+    # Ana QR
+    entry_qr = LibraryEntryQR.objects.first()
+    if not entry_qr:
+        entry_qr = LibraryEntryQR.objects.create()
+
     context = {
         "today_staff": today_staff,
         "broken_seats": broken_seats,
         "computer_seats": computer_seats,
         "feedbacks": feedbacks,
         "library": library,
+        "entry_qr": entry_qr,
     }
     return render(request, "library/staff_panel.html", context)
 
@@ -256,11 +316,13 @@ def api_seats_status(request):
 
 
 def api_checkin(request, seat_id):
-    """AJAX: Koltuğa check-in. Giriş yapmış kullanıcılar için."""
+    """AJAX: Koltuğa check-in."""
     if request.method != "POST":
         return JsonResponse({"error": "POST gerekli"}, status=405)
     if not request.user.is_authenticated:
         return JsonResponse({"error": "Giriş gerekli."}, status=401)
+    if not request.session.get("has_entry", False):
+        return JsonResponse({"error": "Önce kapıdaki QR'ı okut."}, status=403)
     seat = get_object_or_404(Seat, id=seat_id, is_active=True)
     if seat.is_broken:
         return JsonResponse({"error": "Koltuk arızalı."}, status=400)
@@ -284,4 +346,21 @@ def api_checkout(request):
         return JsonResponse({"error": "Aktif check-in yok."}, status=400)
     active.checked_out_at = timezone.now()
     active.save()
+    request.session.pop("has_entry", None)
     return JsonResponse({"success": True, "seat": active.seat.code, "status": "empty"})
+
+
+def seat_qr(request, seat_id):
+    """Koltuk için QR kod PNG üretir."""
+    seat = get_object_or_404(Seat, id=seat_id)
+    url = f"https://bosmu.pythonanywhere.com/seat/{seat.qr_uuid}/"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return HttpResponse(buf, content_type='image/png')
+
+
+def qr_scanner(request):
+    """Kamera ile QR kod okuma sayfası."""
+    return render(request, "library/qr_scanner.html")

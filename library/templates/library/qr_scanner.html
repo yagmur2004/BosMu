@@ -1,0 +1,86 @@
+{% extends "library/base.html" %}
+
+{% block title %}QR Okuyucu — BosMu{% endblock %}
+
+{% block extra_css %}
+.scanner-container {
+    max-width: 400px;
+    margin: 40px auto;
+    text-align: center;
+}
+#reader {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 3px solid #6366f1;
+}
+.scanner-info {
+    background: #1a1d27;
+    border: 1px solid #2e3344;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    color: #8b8fa3;
+    font-size: 14px;
+}
+#scan-result {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    display: none;
+}
+.result-ok { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+.result-err { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+{% endblock %}
+
+{% block content %}
+<div class="scanner-container">
+    <h3 class="fw-bold mb-2">📷 QR Okuyucu</h3>
+    <p class="text-secondary mb-4">Kütüphane giriş QR'ını veya koltuk QR'ını kameraya gösterin</p>
+
+    <div id="reader"></div>
+
+    <div id="scan-result"></div>
+
+    <div class="scanner-info mt-3">
+        📌 Kamera izni gereklidir.<br>
+        QR algılandığında otomatik yönlendirilirsiniz.
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+let scanned = false;
+
+const html5QrCode = new Html5Qrcode("reader");
+
+html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    (decodedText) => {
+        if (scanned) return;
+        scanned = true;
+
+        html5QrCode.stop();
+
+        const result = document.getElementById("scan-result");
+        result.style.display = "block";
+        result.className = "scan-result result-ok";
+        result.textContent = "✅ QR okundu! Yönlendiriliyorsunuz...";
+
+        // URL ise direkt git, değilse hata göster
+        if (decodedText.startsWith("http")) {
+            setTimeout(() => { window.location.href = decodedText; }, 800);
+        } else {
+            result.className = "scan-result result-err";
+            result.textContent = "❌ Geçersiz QR kodu.";
+            setTimeout(() => { scanned = false; html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, arguments.callee); }, 2000);
+        }
+    },
+    () => {}
+).catch(err => {
+    document.getElementById("scan-result").style.display = "block";
+    document.getElementById("scan-result").className = "scan-result result-err";
+    document.getElementById("scan-result").textContent = "❌ Kamera açılamadı: " + err;
+});
+</script>
+{% endblock %}

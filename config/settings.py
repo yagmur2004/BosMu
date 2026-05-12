@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-i--y4rhv*0vvon*6dlabmh@y(14+c#!+jom#17^y(e%1pu$jv8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['bosmu.pythonanywhere.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bosmu.pythonanywhere.com']
 
 
 # Application definition
@@ -123,5 +123,5 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-ALLOWED_HOSTS = ['bosmu.pythonanywhere.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bosmu.pythonanywhere.com']
 STATIC_ROOT = BASE_DIR / 'staticfiles'

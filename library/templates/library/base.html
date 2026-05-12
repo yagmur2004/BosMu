@@ -90,12 +90,23 @@
                             <a class="nav-link" href="{% url 'library:home' %}">Ana Sayfa</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="{% url 'library:qr_scanner' %}">📷 QR Okut</a>
+                        </li>
+                        {% if user.is_staff %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'library:staff_panel' %}">🛠️ Görevli</a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
                             <span class="nav-link">👋 {{ user.username }}</span>
                         </li>
                         <li class="nav-item">
                             <a class="btn btn-outline-bosmu btn-sm" href="{% url 'library:logout' %}">Çıkış</a>
                         </li>
                     {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'library:qr_scanner' %}">📷 QR Okut</a>
+                        </li>
                         <li class="nav-item">
                             <a class="btn btn-outline-bosmu btn-sm" href="{% url 'library:login' %}">Giriş</a>
                         </li>
