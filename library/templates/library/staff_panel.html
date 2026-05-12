@@ -3,15 +3,20 @@
 
 {% block extra_css %}
 <style>
-    .staff-header {
+        .staff-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         margin-bottom: 28px;
-        flex-wrap: wrap;
         gap: 12px;
+        flex-wrap: nowrap;
     }
-    .staff-header h1 { font-size: 28px; font-weight: 700; margin: 0; }
+        .staff-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+        white-space: nowrap;
+    }
     .btn-map {
         background: transparent;
         border: 2px solid rgba(255,255,255,0.3);

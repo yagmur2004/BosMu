@@ -218,22 +218,21 @@ def checkout(request):
 #  STAFF PANELİ
 # ═══════════════════════════════════════
 
-@user_passes_test(is_staff_check, login_url="/login/")
+@user_passes_test(is_staff, login_url="/login/")
 def staff_panel(request):
-    """Görevli paneli."""
     today_staff = DutyStaff.objects.filter(duty_date=date.today()).first()
-    broken_seats = Seat.objects.filter(is_broken=True).select_related("zone")
-    computer_seats = Seat.objects.filter(zone__zone_type="computer", is_active=True).select_related("zone")
-    feedbacks = Feedback.objects.filter(is_read=False).order_by("-created_at")[:10]
     library = Library.objects.first()
+    active_checkins = CheckIn.objects.filter(
+        checked_out_at__isnull=True
+    ).select_related("seat").order_by("-checked_in_at")
     entry_qr = LibraryEntryQR.objects.first()
     if not entry_qr:
         entry_qr = LibraryEntryQR.objects.create()
-
     context = {
-        "today_staff": today_staff, "broken_seats": broken_seats,
-        "computer_seats": computer_seats, "feedbacks": feedbacks,
-        "library": library, "entry_qr": entry_qr,
+        "today_staff": today_staff,
+        "library": library,
+        "active_checkins": active_checkins,
+        "entry_qr": entry_qr,
     }
     return render(request, "library/staff_panel.html", context)
 
