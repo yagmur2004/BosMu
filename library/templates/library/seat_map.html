@@ -19,7 +19,8 @@
 .map-legend-dot.computer { background:var(--ytu-accent); }
 .map-legend-dot.broken { background:#6b7280; }
 
-.map-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+/* ── 5 sütunlu stats ── */
+.map-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
 .map-stat { background:#1a1d27; border:1px solid #2e3344; border-radius:10px; padding:14px; text-align:center; }
 .map-stat-val { font-size:24px; font-weight:700; }
 .map-stat-lbl { font-size:12px; color:#8b8fa3; margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
@@ -87,12 +88,13 @@
     <div class="map-legend-item"><span class="map-legend-dot broken"></span>Arızalı</div>
 </div>
 
-<!-- İstatistikler -->
+<!-- İstatistikler — 5 sütun -->
 <div class="map-stats">
     <div class="map-stat"><div class="map-stat-val" style="color:#e8eaed;" id="s-total">0</div><div class="map-stat-lbl">Toplam</div></div>
     <div class="map-stat"><div class="map-stat-val" style="color:#22c55e;" id="s-empty">0</div><div class="map-stat-lbl">Boş</div></div>
     <div class="map-stat"><div class="map-stat-val" style="color:var(--ytu-primary);" id="s-occupied">0</div><div class="map-stat-lbl">Dolu</div></div>
     <div class="map-stat"><div class="map-stat-val" style="color:var(--ytu-accent);" id="s-computer">0</div><div class="map-stat-lbl">Bilgisayarlı</div></div>
+    <div class="map-stat"><div class="map-stat-val" style="color:#6b7280;" id="s-broken">0</div><div class="map-stat-lbl">Arızalı</div></div>
 </div>
 
 <!-- Harita -->
@@ -222,10 +224,12 @@ function updateStats() {
     const t = allSeats.length;
     const o = allSeats.filter(s => s.dataset.status === 'occupied').length;
     const c = allSeats.filter(s => s.dataset.type === 'computer').length;
-    document.getElementById('s-total').textContent = t;
-    document.getElementById('s-empty').textContent = t - o;
+    const b = allSeats.filter(s => s.dataset.status === 'broken').length;
+    document.getElementById('s-total').textContent    = t;
+    document.getElementById('s-empty').textContent    = t - o - b;
     document.getElementById('s-occupied').textContent = o;
     document.getElementById('s-computer').textContent = c;
+    document.getElementById('s-broken').textContent   = b;
 }
 updateStats();
 
@@ -328,9 +332,11 @@ setInterval(() => {
                 else el.classList.add('empty');
             }
         });
-        document.getElementById('s-total').textContent = data.total;
-        document.getElementById('s-empty').textContent = data.empty;
+        document.getElementById('s-total').textContent    = data.total;
+        document.getElementById('s-empty').textContent    = data.empty;
         document.getElementById('s-occupied').textContent = data.occupied;
+        document.getElementById('s-broken').textContent   = data.broken ?? 0;
+        updateStats();
     });
 }, 10000);
 </script>

@@ -9,10 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bosmu-primary: #0F4990;
-            --bosmu-accent: #90298E;
-            --bosmu-gold: #FF9900;
-            --bosmu-dark: #0f1117;
+            --ytu-primary: #0F4990;
+            --ytu-accent:  #90298E;
+            --ytu-gold:    #FF9900;
+            --bosmu-dark:  #0f1117;
             --bosmu-surface: #1a1d27;
         }
         body {
@@ -22,55 +22,44 @@
             min-height: 100vh;
         }
         .navbar {
-            background: var(--bosmu-primary) !important;
-            border-bottom: 1px solid #0a3570;
+            background: var(--ytu-primary) !important;
+            border-bottom: 3px solid var(--ytu-accent);
             padding: 12px 0;
         }
         .navbar-brand {
-            font-weight: 700;
+            font-weight: 800;
             font-size: 22px;
-            color: #fff !important;
+            color: #ffffff !important;
+            letter-spacing: 0.5px;
         }
-        .navbar-brand span {
-            color: var(--bosmu-gold);
-        }
+        .navbar-brand span { color: var(--ytu-gold); }
         .nav-link {
-            color: rgba(255,255,255,0.8) !important;
+            color: rgba(255,255,255,0.85) !important;
             font-weight: 500;
             transition: color 0.2s;
         }
-        .nav-link:hover, .nav-link.active {
-            color: #fff !important;
-        }
+        .nav-link:hover { color: #ffffff !important; }
         .btn-bosmu {
-            background: var(--bosmu-gold);
-            color: #fff;
+            background: var(--ytu-gold);
+            color: #0f1117;
             border: none;
             border-radius: 8px;
             padding: 8px 20px;
-            font-weight: 600;
-            transition: background 0.2s;
+            font-weight: 700;
+            transition: opacity 0.2s;
         }
-        .btn-bosmu:hover {
-            background: #e68a00;
-            color: white;
-        }
+        .btn-bosmu:hover { opacity: 0.88; color: #0f1117; }
         .btn-outline-bosmu {
-            border: 1.5px solid #fff;
-            color: #fff;
+            border: 2px solid rgba(255,255,255,0.6);
+            color: #fff !important;
             border-radius: 8px;
-            padding: 8px 20px;
+            padding: 6px 18px;
             font-weight: 600;
             background: transparent;
+            transition: background 0.2s;
         }
-        .btn-outline-bosmu:hover {
-            background: rgba(255,255,255,0.15);
-            color: white;
-        }
-        .alert {
-            border-radius: 8px;
-            border: none;
-        }
+        .btn-outline-bosmu:hover { background: rgba(255,255,255,0.15); }
+        .alert { border-radius: 8px; border: none; }
         {% block extra_css %}{% endblock %}
     </style>
 </head>
@@ -91,24 +80,19 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'library:home' %}">Ana Sayfa</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'library:qr_scanner' %}">📷 QR Okut</a>
-                        </li>
+                        <!-- QR Okut butonu kaldırıldı — harita üzerinden yapılıyor -->
                         {% if user.is_staff %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'library:staff_panel' %}">🛠️ Görevli</a>
                         </li>
-                        {% endif %}
                         <li class="nav-item">
-                            <span class="nav-link">👋 {{ user.username }}</span>
+                            <a class="nav-link" href="/admin/">👑 ADMİN</a>
                         </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="btn btn-outline-bosmu btn-sm" href="{% url 'library:logout' %}">Çıkış</a>
                         </li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'library:qr_scanner' %}">📷 QR Okut</a>
-                        </li>
                         <li class="nav-item">
                             <a class="btn btn-outline-bosmu btn-sm" href="{% url 'library:login' %}">Giriş</a>
                         </li>
