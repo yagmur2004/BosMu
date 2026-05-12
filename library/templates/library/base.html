@@ -9,7 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bosmu-primary: #6366f1;
+            --bosmu-primary: #0F4990;
+            --bosmu-accent: #90298E;
+            --bosmu-gold: #FF9900;
             --bosmu-dark: #0f1117;
             --bosmu-surface: #1a1d27;
         }
@@ -20,49 +22,49 @@
             min-height: 100vh;
         }
         .navbar {
-            background: var(--bosmu-surface) !important;
-            border-bottom: 1px solid #2e3344;
+            background: var(--bosmu-primary) !important;
+            border-bottom: 1px solid #0a3570;
             padding: 12px 0;
         }
         .navbar-brand {
             font-weight: 700;
             font-size: 22px;
-            color: #e8eaed !important;
+            color: #fff !important;
         }
         .navbar-brand span {
-            color: var(--bosmu-primary);
+            color: var(--bosmu-gold);
         }
         .nav-link {
-            color: #8b8fa3 !important;
+            color: rgba(255,255,255,0.8) !important;
             font-weight: 500;
             transition: color 0.2s;
         }
         .nav-link:hover, .nav-link.active {
-            color: #e8eaed !important;
+            color: #fff !important;
         }
         .btn-bosmu {
-            background: var(--bosmu-primary);
-            color: white;
+            background: var(--bosmu-gold);
+            color: #fff;
             border: none;
             border-radius: 8px;
             padding: 8px 20px;
             font-weight: 600;
-            transition: opacity 0.2s;
+            transition: background 0.2s;
         }
         .btn-bosmu:hover {
-            background: #5254cc;
+            background: #e68a00;
             color: white;
         }
         .btn-outline-bosmu {
-            border: 1.5px solid var(--bosmu-primary);
-            color: var(--bosmu-primary);
+            border: 1.5px solid #fff;
+            color: #fff;
             border-radius: 8px;
             padding: 8px 20px;
             font-weight: 600;
             background: transparent;
         }
         .btn-outline-bosmu:hover {
-            background: var(--bosmu-primary);
+            background: rgba(255,255,255,0.15);
             color: white;
         }
         .alert {

@@ -58,9 +58,9 @@ class SeatAdmin(admin.ModelAdmin):
 
 @admin.register(CheckIn)
 class CheckInAdmin(admin.ModelAdmin):
-    list_display = ("user", "seat", "checked_in_at", "checked_out_at", "duration", "is_active_badge")
+    list_display = ("session_key_short", "seat", "checked_in_at", "checked_out_at", "duration", "is_active_badge")
     list_filter = ("seat__zone", "checked_in_at")
-    search_fields = ("user__username", "seat__code")
+    search_fields = ("seat__code",)
     ordering = ("-checked_in_at",)
     readonly_fields = ("checked_in_at",)
 
@@ -77,6 +77,10 @@ class CheckInAdmin(admin.ModelAdmin):
             return f"{mins} dk"
         return "—"
     duration.short_description = "Süre"
+
+    def session_key_short(self, obj):
+        return obj.session_key[:8] + "..." if obj.session_key else "—"
+    session_key_short.short_description = "Oturum"
 
 
 @admin.register(DutyStaff)

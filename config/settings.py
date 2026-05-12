@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bosmu.pythonanywhere.com']
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -125,3 +126,75 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bosmu.pythonanywhere.com']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+
+
+# ══════════════════════════════════════
+#  JAZZMIN ADMIN TEMA AYARLARI
+# ══════════════════════════════════════
+JAZZMIN_SETTINGS = {
+    "site_title": "BosMu Admin",
+    "site_header": "BosMu",
+    "site_brand": "📚 BosMu",
+    "welcome_sign": "BosMu Yönetim Paneline Hoş Geldiniz",
+    "copyright": "Yeditepe Üniversitesi — BosMu",
+    "search_model": ["library.Seat", "library.CheckIn"],
+    "topmenu_links": [
+        {"name": "Siteye Git", "url": "/", "new_window": False},
+        {"name": "Harita", "url": "/map/", "new_window": False},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "library.Library": "fas fa-building",
+        "library.Zone": "fas fa-map",
+        "library.Seat": "fas fa-chair",
+        "library.CheckIn": "fas fa-sign-in-alt",
+        "library.DutyStaff": "fas fa-user-tie",
+        "library.Feedback": "fas fa-comment-alt",
+        "library.LibraryEntryQR": "fas fa-qrcode",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    "related_modal_active": False,
+    "custom_css": None,
+    "custom_js": None,
+    "use_google_fonts_cdn": True,
+    "show_ui_builder": False,
+    "changeform_format": "horizontal_tabs",
+    "language_chooser": False,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-primary",
+    "accent": "accent-primary",
+    "navbar": "navbar-primary navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "darkly",
+    "dark_mode_theme": "darkly",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
+    },
+}

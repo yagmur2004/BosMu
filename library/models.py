@@ -1,6 +1,5 @@
 from django.db import models
 import uuid
-from django.contrib.auth.models import User
 
 
 class Library(models.Model):
@@ -57,14 +56,15 @@ class Seat(models.Model):
 
 
 class CheckIn(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="checkins")
+    """Koltuk oturum kaydı. Kullanıcı takibi yapılmaz, session key ile izlenir."""
     seat = models.ForeignKey(Seat, on_delete=models.CASCADE, related_name="checkins")
+    session_key = models.CharField(max_length=100)
     checked_in_at = models.DateTimeField(auto_now_add=True)
     checked_out_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         status = "İçeride" if self.checked_out_at is None else "Çıktı"
-        return f"{self.user.username} - {self.seat} ({status})"
+        return f"Oturum {self.session_key[:8]} - {self.seat} ({status})"
 
     class Meta:
         ordering = ["-checked_in_at"]
@@ -118,7 +118,7 @@ class Feedback(models.Model):
 
 
 class LibraryEntryQR(models.Model):
-    """Kütüphane girişindeki ana QR. Her okumada yenilenir, eski QR geçersiz olur."""
+    """Kütüphane girişindeki ana QR. Her okumada yenilenir."""
     current_token = models.UUIDField(default=uuid.uuid4)
     updated_at = models.DateTimeField(auto_now=True)
 
