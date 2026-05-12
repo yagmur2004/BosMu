@@ -170,13 +170,7 @@
     <!-- Kütüphane Giriş QR -->
     <div class="qr-card">
         <h3>📋 Kütüphane Giriş QR</h3>
-        {% if entry_qr %}
-            <img src="/qr/entry/{{ entry_qr.current_token }}/" alt="Giriş QR" id="entry-qr-img">
-        {% elif entry_qr_url %}
-            <img src="{{ entry_qr_url }}" alt="Giriş QR" id="entry-qr-img">
-        {% else %}
-            <p style="color:#8b8fa3;">QR oluşturulamadı.</p>
-        {% endif %}
+        <img src="/entry-qr-image/" alt="Giriş QR" id="entry-qr-img">
         <div class="qr-note">Bu QR her okutmada otomatik yenilenir.<br>Ekrana asın veya yazdırın.</div>
         <button class="btn-present" onclick="openPresent()">
             📺 Yansıt (Tam Ekran)
@@ -220,7 +214,7 @@
 <script>
 function openPresent() {
     const imgEl = document.getElementById('entry-qr-img');
-    if (!imgEl) {
+    if (!imgEl || !imgEl.src) {
         alert('QR resmi bulunamadı.');
         return;
     }
