@@ -128,41 +128,73 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'bosmu.pythonanywhere.com']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
-
-# ══════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
 #  JAZZMIN ADMIN TEMA AYARLARI
-# ══════════════════════════════════════
+#  settings.py dosyasındaki ESKİ JAZZMIN bloklarını SİL,
+#  bu içeriği en alta yapıştır.
+# ══════════════════════════════════════════════════════════════
+
 JAZZMIN_SETTINGS = {
+    # ── Başlıklar ──────────────────────────────────────────────
     "site_title": "BosMu Admin",
     "site_header": "BosMu",
-    "site_brand": "📚 BosMu",
+
+    # Logo tamamen kapatıldı → sadece brand yazısı görünür
+    "site_logo": None,
+    "site_logo_classes": None,
+    "site_icon": None,
+
+    # Navbar sol üstte büyük "BosMu" yazısı
+    "site_brand": "BosMu",
+
+    # ── Giriş ekranı ───────────────────────────────────────────
+    "login_logo": None,
+    "login_logo_dark": None,
+    "login_logo_background": "bg-dark",
     "welcome_sign": "BosMu Yönetim Paneline Hoş Geldiniz",
     "copyright": "Yeditepe Üniversitesi — BosMu",
+
+    # ── Arama ──────────────────────────────────────────────────
     "search_model": ["library.Seat", "library.CheckIn"],
+
+    # ── Üst menü ───────────────────────────────────────────────
     "topmenu_links": [
         {"name": "Siteye Git", "url": "/", "new_window": False},
         {"name": "Harita", "url": "/map/", "new_window": False},
     ],
+
+    # ── Kullanıcı menüsü ───────────────────────────────────────
+    "usermenu_links": [],
+
+    # ── Sidebar ────────────────────────────────────────────────
     "show_sidebar": True,
     "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+
+    # ── İkonlar ────────────────────────────────────────────────
     "icons": {
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
-        "library.Library": "fas fa-building",
-        "library.Zone": "fas fa-map",
-        "library.Seat": "fas fa-chair",
-        "library.CheckIn": "fas fa-sign-in-alt",
+        "auth":              "fas fa-users-cog",
+        "auth.user":         "fas fa-user",
+        "auth.Group":        "fas fa-users",
+        "library.Library":   "fas fa-building",
+        "library.Zone":      "fas fa-map-marker-alt",
+        "library.Seat":      "fas fa-chair",
+        "library.CheckIn":   "fas fa-sign-in-alt",
         "library.DutyStaff": "fas fa-user-tie",
-        "library.Feedback": "fas fa-comment-alt",
-        "library.LibraryEntryQR": "fas fa-qrcode",
+        "library.Feedback":  "fas fa-comment-alt",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
-    "related_modal_active": False,
-    "custom_css": None,
+
+    # ── Özel CSS — A sembolü gizleme + Yeditepe renkleri ───────
+    "custom_css": "admin/bosmu.css",   # ← Ana değişiklik
     "custom_js": None,
+
+    # ── Diğer ──────────────────────────────────────────────────
+    "related_modal_active": False,
     "use_google_fonts_cdn": True,
-    "show_ui_builder": False,
+    "show_ui_builder": False,          # Dashboard UI builder kaldırıldı
     "changeform_format": "horizontal_tabs",
     "language_chooser": False,
 }
@@ -172,11 +204,15 @@ JAZZMIN_UI_TWEAKS = {
     "footer_small_text": False,
     "body_small_text": False,
     "brand_small_text": False,
+
+    # Yeditepe lacivert navbar
     "brand_colour": "navbar-primary",
     "accent": "accent-primary",
     "navbar": "navbar-primary navbar-dark",
     "no_navbar_border": False,
     "navbar_fixed": True,
+
+    # Layout
     "layout_boxed": False,
     "footer_fixed": False,
     "sidebar_fixed": True,
@@ -187,14 +223,18 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
+
+    # darkly teması — light modda da renk uyumsuzluğu yaşanmaz
     "theme": "darkly",
     "dark_mode_theme": "darkly",
+
+    # Buton renkleri
     "button_classes": {
-        "primary": "btn-primary",
+        "primary":   "btn-primary",
         "secondary": "btn-secondary",
-        "info": "btn-info",
-        "warning": "btn-warning",
-        "danger": "btn-danger",
-        "success": "btn-success",
+        "info":      "btn-info",
+        "warning":   "btn-warning",
+        "danger":    "btn-danger",
+        "success":   "btn-success",
     },
 }
