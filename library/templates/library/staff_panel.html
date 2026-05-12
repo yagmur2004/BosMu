@@ -3,32 +3,14 @@
 
 {% block extra_css %}
 <style>
-        .staff-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+    .staff-header {
         margin-bottom: 28px;
-        gap: 12px;
-        flex-wrap: nowrap;
     }
-        .staff-header h1 {
-        font-size: 24px;
+    .staff-header h1 {
+        font-size: 26px;
         font-weight: 700;
         margin: 0;
-        white-space: nowrap;
     }
-    .btn-map {
-        background: transparent;
-        border: 2px solid rgba(255,255,255,0.3);
-        color: #e8eaed;
-        border-radius: 10px;
-        padding: 10px 22px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: background 0.2s;
-        white-space: nowrap;
-    }
-    .btn-map:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
     .staff-grid {
         display: grid;
@@ -135,7 +117,6 @@
 {% block content %}
 <div class="staff-header">
     <h1>🛠️ Görevli Paneli</h1>
-    <a href="{% url 'library:seat_map' %}" class="btn-map">🗺️ Haritaya Git</a>
 </div>
 
 {% if messages %}

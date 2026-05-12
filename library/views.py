@@ -218,7 +218,7 @@ def checkout(request):
 #  STAFF PANELİ
 # ═══════════════════════════════════════
 
-@user_passes_test(is_staff, login_url="/login/")
+@user_passes_test(is_staff_check, login_url="/login/")
 def staff_panel(request):
     today_staff = DutyStaff.objects.filter(duty_date=date.today()).first()
     library = Library.objects.first()
