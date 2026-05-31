@@ -26,4 +26,7 @@ urlpatterns = [
     path("api/seats/", views.api_seats_status, name="api_seats_status"),
     path("api/checkin/<int:seat_id>/", views.api_checkin, name="api_checkin"),
     path("api/checkout/", views.api_checkout, name="api_checkout"),
+# library/urls.py — mevcut path'lerin arasına ekle
+path("analytics/", views.analytics_view, name="analytics"),
+
 ]

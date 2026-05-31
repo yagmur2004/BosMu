@@ -317,3 +317,26 @@ def seat_qr(request, seat_id):
 def qr_scanner(request):
     """Kamera ile QR okuma sayfası."""
     return render(request, "library/qr_scanner.html")
+from datetime import date
+from dateutil.relativedelta import relativedelta
+
+def analytics_view(request):
+    if not request.user.is_staff:
+        return redirect("library:home")
+
+    today = date.today()
+    available_months = []
+    for i in range(6):
+        d = today - relativedelta(months=i)
+        available_months.append({
+            "value": d.strftime("%Y-%m"),
+            "label": d.strftime("%B %Y"),
+        })
+
+    selected_month = request.GET.get("month", today.strftime("%Y-%m"))
+
+    context = {
+        "available_months": available_months,
+        "selected_month": selected_month,
+    }
+    return render(request, "library/analytics.html", context)

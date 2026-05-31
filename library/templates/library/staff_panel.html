@@ -216,7 +216,10 @@ function closePresent() {
     if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
 }
-
+<!-- staff_panel.html içinde uygun bir yere ekle -->
+<a href="{% url 'library:analytics' %}" class="btn btn-outline-secondary">
+  Kullanım analizi
+</a>
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closePresent();
 });
