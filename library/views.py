@@ -257,6 +257,17 @@ def toggle_broken(request, seat_id):
     return redirect("library:staff_panel")
 
 
+@user_passes_test(is_staff_check, login_url="/login/")
+def staff_force_checkout(request, checkin_id):
+    """Görevli tarafından zorla check-out."""
+    if request.method == "POST":
+        checkin = get_object_or_404(CheckIn, id=checkin_id)
+        checkin.checked_out_at = timezone.now()
+        checkin.save()
+        messages.success(request, f"{checkin.seat.code} koltuğundan çıkış yaptırıldı.")
+    return redirect("library:staff_panel")
+
+
 # ═══════════════════════════════════════
 #  AJAX API
 # ═══════════════════════════════════════
