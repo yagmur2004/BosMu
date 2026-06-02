@@ -6,8 +6,32 @@ from .models import Library, Zone, Seat, CheckIn, DutyStaff, Feedback
 
 
 # ══════════════════════════════════════
+#  Özel Admin Site — Raporlar Linki
+# ══════════════════════════════════════
+class BosMuAdminSite(admin.AdminSite):
+    def get_app_list(self, request, app_label=None):
+        app_list = super().get_app_list(request, app_label)
+        app_list += [
+            {
+                "name": "Raporlar",
+                "app_label": "raporlar",
+                "models": [
+                    {
+                        "name": "📊 Kullanım Analizi",
+                        "object_name": "analytics",
+                        "admin_url": "/analytics/",
+                        "view_only": True,
+                    }
+                ],
+            }
+        ]
+        return app_list
+
+
+# ══════════════════════════════════════
 #  Admin Site Başlığı
 # ══════════════════════════════════════
+admin.site.__class__ = BosMuAdminSite
 admin.site.site_header = "📚 BosMu Yönetim Paneli"
 admin.site.site_title = "BosMu Admin"
 admin.site.index_title = "Hoş Geldiniz"
@@ -26,12 +50,12 @@ class LibraryAdmin(admin.ModelAdmin):
 
 
 # ══════════════════════════════════════
-#  Bölge — zone_type filtresi kaldırıldı
+#  Bölge
 # ══════════════════════════════════════
 @admin.register(Zone)
 class ZoneAdmin(admin.ModelAdmin):
     list_display = ("name", "library", "zone_type", "floor", "seat_count")
-    list_filter = ("library",)   # ← zone_type filtresi kaldırıldı
+    list_filter = ("library",)
 
     def seat_count(self, obj):
         return obj.seats.filter(is_active=True).count()
@@ -112,7 +136,6 @@ class CheckInAdmin(admin.ModelAdmin):
 
 # ══════════════════════════════════════
 #  Görevli Çalışan
-#  Alanlar: first_name, last_name, email, duty_date, start_time, end_time, note
 # ══════════════════════════════════════
 @admin.register(DutyStaff)
 class DutyStaffAdmin(admin.ModelAdmin):
@@ -142,7 +165,6 @@ class DutyStaffAdmin(admin.ModelAdmin):
 
 # ══════════════════════════════════════
 #  Geri Bildirim
-#  Alanlar: first_name, last_name, school_email, feedback_type, message, created_at, is_read
 # ══════════════════════════════════════
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):

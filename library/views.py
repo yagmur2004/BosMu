@@ -5,10 +5,14 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
+from django.db.models import Count, ExpressionWrapper, F, DurationField
+from django.db.models.functions import ExtractWeekDay, ExtractHour, ExtractDay
 from datetime import date
+from dateutil.relativedelta import relativedelta
 import json
 import qrcode
 import io
+import calendar
 from .models import Library, Zone, Seat, CheckIn, DutyStaff, Feedback, LibraryEntryQR
 
 
@@ -317,10 +321,14 @@ def seat_qr(request, seat_id):
 def qr_scanner(request):
     """Kamera ile QR okuma sayfası."""
     return render(request, "library/qr_scanner.html")
-from datetime import date
-from dateutil.relativedelta import relativedelta
+
+
+# ═══════════════════════════════════════
+#  ANALİTİK
+# ═══════════════════════════════════════
 
 def analytics_view(request):
+    """Analitik dashboard sayfası. Sadece staff erişebilir."""
     if not request.user.is_staff:
         return redirect("library:home")
 
@@ -340,3 +348,98 @@ def analytics_view(request):
         "selected_month": selected_month,
     }
     return render(request, "library/analytics.html", context)
+
+
+def analytics_data(request):
+    """Gerçek CheckIn verisini JSON olarak döndürür. Sadece staff erişebilir."""
+    if not request.user.is_staff:
+        return JsonResponse({"error": "Yetkisiz"}, status=403)
+
+    month_str = request.GET.get("month", date.today().strftime("%Y-%m"))
+    try:
+        year, month = int(month_str.split("-")[0]), int(month_str.split("-")[1])
+    except Exception:
+        year, month = date.today().year, date.today().month
+
+    qs = CheckIn.objects.filter(
+        checked_in_at__year=year,
+        checked_in_at__month=month,
+    )
+
+    total = qs.count()
+
+    days_in_month = calendar.monthrange(year, month)[1]
+    daily_avg = round(total / days_in_month) if days_in_month else 0
+
+    # Güne göre (Django: 1=Pazar, 2=Pzt, ..., 7=Cmt)
+    by_weekday_qs = (
+        qs.annotate(wd=ExtractWeekDay("checked_in_at"))
+        .values("wd").annotate(count=Count("id")).order_by("wd")
+    )
+    weekday_map = {2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 1: 6}
+    by_weekday = [0] * 7
+    for row in by_weekday_qs:
+        idx = weekday_map.get(row["wd"], 0)
+        by_weekday[idx] = row["count"]
+
+    day_names = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
+    peak_day = day_names[by_weekday.index(max(by_weekday))] if total else "—"
+
+    # Saate göre (8-22)
+    by_hour_qs = (
+        qs.annotate(hr=ExtractHour("checked_in_at"))
+        .values("hr").annotate(count=Count("id")).order_by("hr")
+    )
+    hour_map = {h: 0 for h in range(8, 23)}
+    for row in by_hour_qs:
+        if row["hr"] in hour_map:
+            hour_map[row["hr"]] = row["count"]
+    by_hour = list(hour_map.values())
+
+    # Günlük trend
+    by_day_qs = (
+        qs.annotate(d=ExtractDay("checked_in_at"))
+        .values("d").annotate(count=Count("id")).order_by("d")
+    )
+    day_map = {d: 0 for d in range(1, days_in_month + 1)}
+    for row in by_day_qs:
+        day_map[row["d"]] = row["count"]
+    daily_trend = list(day_map.values())
+
+    # Ortalama oturma süresi (dakika)
+    completed = qs.filter(checked_out_at__isnull=False).annotate(
+        duration=ExpressionWrapper(
+            F("checked_out_at") - F("checked_in_at"),
+            output_field=DurationField()
+        )
+    )
+    avg_dur = 0
+    if completed.exists():
+        total_seconds = sum(c.duration.total_seconds() for c in completed)
+        avg_dur = round(total_seconds / completed.count() / 60)
+
+    # Dönemsel karşılaştırma — son 6 ay
+    today = date.today()
+    compare_labels = []
+    compare_data = []
+    month_names = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+                   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+    for i in range(5, -1, -1):
+        d = today - relativedelta(months=i)
+        count = CheckIn.objects.filter(
+            checked_in_at__year=d.year,
+            checked_in_at__month=d.month
+        ).count()
+        compare_labels.append(month_names[d.month - 1])
+        compare_data.append(count)
+
+    return JsonResponse({
+        "total_checkins": total,
+        "daily_avg": daily_avg,
+        "peak_day": peak_day,
+        "avg_duration_min": avg_dur,
+        "by_weekday": by_weekday,
+        "by_hour": by_hour,
+        "daily_trend": daily_trend,
+        "monthly_compare": {"labels": compare_labels, "data": compare_data},
+    })

@@ -28,5 +28,5 @@ urlpatterns = [
     path("api/checkout/", views.api_checkout, name="api_checkout"),
 # library/urls.py — mevcut path'lerin arasına ekle
 path("analytics/", views.analytics_view, name="analytics"),
-
+    path("analytics/data/", views.analytics_data, name="analytics_data"),
 ]
