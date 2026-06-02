@@ -67,28 +67,31 @@ class ZoneAdmin(admin.ModelAdmin):
 # ══════════════════════════════════════
 @admin.register(Seat)
 class SeatAdmin(admin.ModelAdmin):
-    list_display = ("code", "zone", "status_badge", "is_active")
-    list_filter = ("zone", "is_active", "zone__zone_type")
+    list_display = ("code", "zone", "status_badge", "is_broken", "is_active")
+    list_filter = ("zone", "is_active", "is_broken", "zone__zone_type")
+    list_editable = ("is_broken",)
     search_fields = ("code",)
     readonly_fields = ("qr_uuid",)
     ordering = ("zone", "code")
 
     def get_fieldsets(self, request, obj=None):
-        fieldsets = [
+        return [
             ("Koltuk Bilgisi", {"fields": ("zone", "code", "is_active")}),
+            ("Arıza Durumu", {
+                "fields": ("is_broken",),
+                "description": "Arızalı koltuklar haritada gri görünür ve rezerve edilemez.",
+            }),
             ("QR Kodu", {"fields": ("qr_uuid",), "classes": ("collapse",)}),
         ]
-        if obj and obj.zone.zone_type == "computer":
-            fieldsets.insert(1, ("Arıza Durumu", {
-                "fields": ("is_broken",),
-                "description": "Sadece bilgisayarlı koltuklar için. Arızalı koltuklar haritada gri görünür.",
-            }))
-        return fieldsets
 
     def status_badge(self, obj):
         if not obj.is_active:
             return format_html(
                 '<span style="color:white;background:#6b7280;padding:2px 10px;border-radius:4px;">Pasif</span>'
+            )
+        if obj.is_broken:
+            return format_html(
+                '<span style="color:white;background:#f97316;padding:2px 10px;border-radius:4px;">Arızalı</span>'
             )
         if obj.is_occupied:
             return format_html(
