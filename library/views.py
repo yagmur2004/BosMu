@@ -13,6 +13,7 @@ import json
 import qrcode
 import io
 import calendar
+import time
 from .models import Library, Zone, Seat, CheckIn, DutyStaff, Feedback, LibraryEntryQR
 
 
@@ -131,7 +132,10 @@ def entry_qr_image(request):
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
-    return HttpResponse(buf, content_type='image/png')
+    response = HttpResponse(buf, content_type='image/png')
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    return response
 
 
 # ═══════════════════════════════════════
@@ -237,6 +241,7 @@ def staff_panel(request):
         "library": library,
         "active_checkins": active_checkins,
         "entry_qr": entry_qr,
+        "now_ts": int(time.time()),
     }
     return render(request, "library/staff_panel.html", context)
 
@@ -371,7 +376,6 @@ def analytics_data(request):
     days_in_month = calendar.monthrange(year, month)[1]
     daily_avg = round(total / days_in_month) if days_in_month else 0
 
-    # Güne göre (Django: 1=Pazar, 2=Pzt, ..., 7=Cmt)
     by_weekday_qs = (
         qs.annotate(wd=ExtractWeekDay("checked_in_at"))
         .values("wd").annotate(count=Count("id")).order_by("wd")
@@ -385,7 +389,6 @@ def analytics_data(request):
     day_names = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
     peak_day = day_names[by_weekday.index(max(by_weekday))] if total else "—"
 
-    # Saate göre (8-22)
     by_hour_qs = (
         qs.annotate(hr=ExtractHour("checked_in_at"))
         .values("hr").annotate(count=Count("id")).order_by("hr")
@@ -396,7 +399,6 @@ def analytics_data(request):
             hour_map[row["hr"]] = row["count"]
     by_hour = list(hour_map.values())
 
-    # Günlük trend
     by_day_qs = (
         qs.annotate(d=ExtractDay("checked_in_at"))
         .values("d").annotate(count=Count("id")).order_by("d")
@@ -406,7 +408,6 @@ def analytics_data(request):
         day_map[row["d"]] = row["count"]
     daily_trend = list(day_map.values())
 
-    # Ortalama oturma süresi (dakika)
     completed = qs.filter(checked_out_at__isnull=False).annotate(
         duration=ExpressionWrapper(
             F("checked_out_at") - F("checked_in_at"),
@@ -418,7 +419,6 @@ def analytics_data(request):
         total_seconds = sum(c.duration.total_seconds() for c in completed)
         avg_dur = round(total_seconds / completed.count() / 60)
 
-    # Dönemsel karşılaştırma — son 6 ay
     today = date.today()
     compare_labels = []
     compare_data = []
